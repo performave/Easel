@@ -56,6 +56,18 @@ pub fn load() -> Result<Option<Session>, AuthError> {
     }
 }
 
+/// Clears all webview browsing data (cookies, localStorage, IndexedDB, cache)
+/// for every WebviewWindow in the app. On macOS/Windows the WebView data store
+/// is shared process-wide, so calling this on any one webview wipes the auth
+/// caches for the SSO IdP too (e.g. Duke Shibboleth).
+pub fn clear_browsing_data(app: &AppHandle) -> Result<(), AuthError> {
+    for (_, window) in app.webview_windows() {
+        window.clear_all_browsing_data()?;
+        break;
+    }
+    Ok(())
+}
+
 pub fn clear() -> Result<(), AuthError> {
     let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)?;
     match entry.delete_credential() {

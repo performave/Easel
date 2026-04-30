@@ -50,12 +50,22 @@ impl HttpClient {
         }
     }
 
+    pub async fn post(&self, session: &Session, path: &str) -> Result<(), ApiError> {
+        let url = format!("https://{}{}", session.domain, path);
+        let mut req = self.client.post(&url);
+        if let Some(token) = &session.csrf_token {
+            req = req.header("X-CSRF-Token", token);
+        }
+        let _ = req.send().await?;
+        Ok(())
+    }
+
     pub async fn get_json<T: DeserializeOwned>(
         &self,
         session: &Session,
         path: &str,
     ) -> Result<T, ApiError> {
-        let url = format!("https://{}{}", session.domain, path);
+        let url = self.absolute_url(session, path);
         let resp = self.client.get(&url).send().await?;
         let status = resp.status();
         if status == reqwest::StatusCode::UNAUTHORIZED {
@@ -69,5 +79,50 @@ impl HttpClient {
             });
         }
         Ok(resp.json::<T>().await?)
+    }
+
+    /// Auto-paginates a Canvas list endpoint by following `Link: rel="next"`.
+    /// Returns the concatenated array of items across pages. Caps at 50 pages
+    /// to avoid runaway loops on misconfigured endpoints.
+    pub async fn get_paginated(
+        &self,
+        session: &Session,
+        path: &str,
+    ) -> Result<Vec<serde_json::Value>, ApiError> {
+        let mut url = self.absolute_url(session, path);
+        let mut out = Vec::new();
+        for _ in 0..50 {
+            let resp = self.client.get(&url).send().await?;
+            let status = resp.status();
+            if status == reqwest::StatusCode::UNAUTHORIZED {
+                return Err(ApiError::SessionExpired);
+            }
+            if !status.is_success() {
+                let body = resp.text().await.unwrap_or_default();
+                return Err(ApiError::Canvas {
+                    status: status.as_u16(),
+                    body,
+                });
+            }
+            let next = pagination::next_link(resp.headers());
+            let body: serde_json::Value = resp.json().await?;
+            match body {
+                serde_json::Value::Array(items) => out.extend(items),
+                other => out.push(other),
+            }
+            match next {
+                Some(n) => url = n,
+                None => break,
+            }
+        }
+        Ok(out)
+    }
+
+    fn absolute_url(&self, session: &Session, path: &str) -> String {
+        if path.starts_with("http://") || path.starts_with("https://") {
+            path.to_string()
+        } else {
+            format!("https://{}{}", session.domain, path)
+        }
     }
 }
