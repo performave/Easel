@@ -30,7 +30,7 @@ impl HttpClient {
         let jar = Arc::new(Jar::default());
         let client = reqwest::Client::builder()
             .cookie_provider(jar.clone())
-            .user_agent("Slayte/0.1 (+https://github.com/EricWang/slayte)")
+            .user_agent("Easel/0.1 (+https://github.com/EricWang/easel)")
             .build()
             .expect("failed to build reqwest client");
         Self { client, jar }

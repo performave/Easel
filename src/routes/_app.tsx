@@ -26,6 +26,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -131,7 +132,7 @@ function AppShell() {
                 S
               </div>
               <div className="flex flex-col text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="font-semibold">Slayte</span>
+                <span className="font-semibold">Easel</span>
                 <span className="text-xs text-muted-foreground truncate max-w-[10rem]">{domain}</span>
               </div>
             </div>
@@ -207,12 +208,14 @@ function AppShell() {
                     }
                   />
                   <DropdownMenuContent side="right" align="end" className="min-w-56">
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{user?.name}</span>
-                        <span className="text-xs text-muted-foreground">{user?.primary_email}</span>
-                      </div>
-                    </DropdownMenuLabel>
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{user?.name}</span>
+                          <span className="text-xs text-muted-foreground">{user?.primary_email}</span>
+                        </div>
+                      </DropdownMenuLabel>
+                    </DropdownMenuGroup>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem disabled>
                       <IconSettings />

@@ -1,12 +1,12 @@
 [package]
-name = "slayte"
+name = "easel"
 version = "0.1.0"
-description = "Slayte — a Canvas LMS desktop client"
+description = "Easel - a Canvas LMS desktop client"
 authors = ["Eric Wang"]
 edition = "2021"
 
 [lib]
-name = "slayte_lib"
+name = "easel_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

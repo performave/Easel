@@ -5,7 +5,11 @@ use tauri::webview::PageLoadEvent;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 use tokio::sync::oneshot;
 
-const KEYRING_SERVICE: &str = "com.performave.slayte";
+#[cfg(debug_assertions)]
+const SESSION_FILE: &str = "session.json";
+#[cfg(not(debug_assertions))]
+const KEYRING_SERVICE: &str = "com.performave.easel";
+#[cfg(not(debug_assertions))]
 const KEYRING_USER: &str = "canvas-session";
 const LOGIN_WINDOW_LABEL: &str = "canvas-login";
 
@@ -26,7 +30,11 @@ pub struct Cookie {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuthError {
+    #[error("io error: {0}")]
+    #[cfg(debug_assertions)]
+    Io(#[from] std::io::Error),
     #[error("keyring error: {0}")]
+    #[cfg(not(debug_assertions))]
     Keyring(#[from] keyring::Error),
     #[error("serde error: {0}")]
     Serde(#[from] serde_json::Error),
@@ -40,14 +48,42 @@ pub enum AuthError {
     Expired,
 }
 
-pub fn save(session: &Session) -> Result<(), AuthError> {
+#[cfg(debug_assertions)]
+fn session_path(app: &AppHandle) -> Result<std::path::PathBuf, AuthError> {
+    let mut path = app.path().app_config_dir()?;
+    std::fs::create_dir_all(&path)?;
+    path.push(SESSION_FILE);
+    Ok(path)
+}
+
+#[cfg(debug_assertions)]
+pub fn save(app: &AppHandle, session: &Session) -> Result<(), AuthError> {
+    let path = session_path(app)?;
+    let payload = serde_json::to_string(session)?;
+    std::fs::write(path, payload)?;
+    Ok(())
+}
+
+#[cfg(not(debug_assertions))]
+pub fn save(_app: &AppHandle, session: &Session) -> Result<(), AuthError> {
     let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)?;
     let payload = serde_json::to_string(session)?;
     entry.set_password(&payload)?;
     Ok(())
 }
 
-pub fn load() -> Result<Option<Session>, AuthError> {
+#[cfg(debug_assertions)]
+pub fn load(app: &AppHandle) -> Result<Option<Session>, AuthError> {
+    let path = session_path(app)?;
+    if !path.exists() {
+        return Ok(None);
+    }
+    let payload = std::fs::read_to_string(path)?;
+    Ok(Some(serde_json::from_str(&payload)?))
+}
+
+#[cfg(not(debug_assertions))]
+pub fn load(_app: &AppHandle) -> Result<Option<Session>, AuthError> {
     let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)?;
     match entry.get_password() {
         Ok(payload) => Ok(Some(serde_json::from_str(&payload)?)),
@@ -68,7 +104,18 @@ pub fn clear_browsing_data(app: &AppHandle) -> Result<(), AuthError> {
     Ok(())
 }
 
-pub fn clear() -> Result<(), AuthError> {
+#[cfg(debug_assertions)]
+pub fn clear(app: &AppHandle) -> Result<(), AuthError> {
+    let path = session_path(app)?;
+    match std::fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.into()),
+    }
+}
+
+#[cfg(not(debug_assertions))]
+pub fn clear(_app: &AppHandle) -> Result<(), AuthError> {
     let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)?;
     match entry.delete_credential() {
         Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),

@@ -4,6 +4,7 @@ mod commands;
 mod notifications;
 
 use std::sync::Arc;
+use tauri::Manager;
 use tokio::sync::RwLock;
 
 pub struct AppState {
@@ -14,12 +15,8 @@ pub struct AppState {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let http = Arc::new(api::HttpClient::new());
-    let restored = auth::load().ok().flatten();
-    if let Some(ref session) = restored {
-        http.seed_from(session);
-    }
     let state = AppState {
-        session: RwLock::new(restored),
+        session: RwLock::new(None),
         http,
     };
 
@@ -27,6 +24,14 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .manage(state)
+        .setup(|app| {
+            if let Ok(Some(session)) = auth::load(app.handle()) {
+                let state = app.state::<AppState>();
+                state.http.seed_from(&session);
+                *state.session.blocking_write() = Some(session);
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::bootstrap,
             commands::begin_login,

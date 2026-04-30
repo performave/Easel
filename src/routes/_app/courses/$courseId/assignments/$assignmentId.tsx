@@ -120,7 +120,7 @@ function AssignmentDetail() {
               )}
               <Separator className="my-2" />
               <p className="text-xs text-muted-foreground">
-                File-upload and text-entry submission inside Slayte is not yet implemented — use
+                File-upload and text-entry submission inside Easel is not yet implemented — use
                 "Open in Canvas" to submit.
               </p>
             </CardContent>

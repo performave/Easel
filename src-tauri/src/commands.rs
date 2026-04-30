@@ -41,7 +41,7 @@ pub async fn begin_login(
 ) -> Result<BootstrapInfo, CommandError> {
     let session = auth::begin_login(&app, &domain).await?;
     state.http.seed_from(&session);
-    auth::save(&session)?;
+    auth::save(&app, &session)?;
     let info = BootstrapInfo {
         authenticated: true,
         domain: Some(session.domain.clone()),
@@ -125,7 +125,7 @@ pub async fn logout(app: AppHandle, state: State<'_, AppState>) -> Result<(), Co
     if let Some(session) = prior {
         let _ = state.http.post(&session, "/logout").await;
     }
-    auth::clear()?;
+    auth::clear(&app)?;
     auth::clear_browsing_data(&app)?;
     Ok(())
 }
