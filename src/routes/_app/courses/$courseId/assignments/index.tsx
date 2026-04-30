@@ -10,14 +10,14 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/courses/$courseId/assignments/")({
   loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(assignmentGroupsQueryOptions(Number(params.courseId))),
+    context.queryClient.prefetchQuery(assignmentGroupsQueryOptions(Number(params.courseId))),
   component: AssignmentsPage,
 });
 
 function AssignmentsPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/assignments/" });
   const id = Number(courseId);
-  const { data, isPending } = useQuery(assignmentGroupsQueryOptions(id));
+  const { data, isPending, isError } = useQuery(assignmentGroupsQueryOptions(id));
   const groups = data ?? [];
 
   const sorted = useMemo(
@@ -31,6 +31,9 @@ function AssignmentsPage() {
         {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
       </div>
     );
+  }
+  if (isError) {
+    return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
   }
   if (groups.length === 0) {
     return <p className="text-sm text-muted-foreground">No assignments.</p>;

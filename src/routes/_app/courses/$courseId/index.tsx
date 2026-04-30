@@ -7,12 +7,12 @@ import { formatRelativeDate } from "@/lib/format";
 import { courseAnnouncementsQueryOptions, modulesQueryOptions } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/courses/$courseId/")({
-  loader: async ({ context, params }) => {
+  loader: ({ context, params }) => {
     const id = Number(params.courseId);
-    await Promise.all([
-      context.queryClient.ensureQueryData(modulesQueryOptions(id)),
-      context.queryClient.ensureQueryData(courseAnnouncementsQueryOptions(id)),
-    ]);
+    return Promise.all([
+      context.queryClient.prefetchQuery(modulesQueryOptions(id)),
+      context.queryClient.prefetchQuery(courseAnnouncementsQueryOptions(id)),
+    ]).catch(() => undefined);
   },
   component: CourseHome,
 });
@@ -20,8 +20,12 @@ export const Route = createFileRoute("/_app/courses/$courseId/")({
 function CourseHome() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/" });
   const id = Number(courseId);
-  const { data: modulesData, isPending: modulesPending } = useQuery(modulesQueryOptions(id));
-  const { data: announcementsData, isPending: announcementsPending } = useQuery(courseAnnouncementsQueryOptions(id));
+  const { data: modulesData, isPending: modulesPending, isError: modulesError } = useQuery(modulesQueryOptions(id));
+  const {
+    data: announcementsData,
+    isPending: announcementsPending,
+    isError: announcementsError,
+  } = useQuery(courseAnnouncementsQueryOptions(id));
   const modules = modulesData ?? [];
   const announcements = announcementsData ?? [];
 
@@ -35,6 +39,8 @@ function CourseHome() {
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
           </div>
+        ) : modulesError ? (
+          <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>
         ) : modules.length === 0 ? (
           <p className="text-sm text-muted-foreground">No modules in this course.</p>
         ) : (
@@ -50,6 +56,8 @@ function CourseHome() {
           <CardContent className="space-y-2">
             {announcementsPending ? (
               Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
+            ) : announcementsError ? (
+              <p className="text-sm text-muted-foreground">Announcements are restricted for your account.</p>
             ) : announcements.length === 0 ? (
               <p className="text-sm text-muted-foreground">No announcements yet.</p>
             ) : (

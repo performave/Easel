@@ -8,13 +8,13 @@ import { formatRelative } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/courses/$courseId/discussions")({
   loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(discussionsQueryOptions(Number(params.courseId))),
+    context.queryClient.prefetchQuery(discussionsQueryOptions(Number(params.courseId))),
   component: DiscussionsPage,
 });
 
 function DiscussionsPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/discussions" });
-  const { data, isPending } = useQuery(discussionsQueryOptions(Number(courseId)));
+  const { data, isPending, isError } = useQuery(discussionsQueryOptions(Number(courseId)));
   const discussions = data ?? [];
 
   if (isPending) {
@@ -23,6 +23,9 @@ function DiscussionsPage() {
         {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
       </div>
     );
+  }
+  if (isError) {
+    return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
   }
   if (discussions.length === 0) {
     return <p className="text-sm text-muted-foreground">No discussions.</p>;

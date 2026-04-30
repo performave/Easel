@@ -9,13 +9,9 @@ import type { Folder } from "@/lib/api";
 import { formatBytes, formatShortDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/courses/$courseId/files")({
-  loader: async ({ context, params }) => {
+  loader: ({ context, params }) => {
     const courseId = Number(params.courseId);
-    const root = await context.queryClient.ensureQueryData(rootFolderQueryOptions(courseId));
-    await Promise.all([
-      context.queryClient.ensureQueryData(foldersQueryOptions(courseId, root.id)),
-      context.queryClient.ensureQueryData(filesQueryOptions(courseId, root.id)),
-    ]);
+    return context.queryClient.prefetchQuery(rootFolderQueryOptions(courseId)).catch(() => undefined);
   },
   component: FilesPage,
 });
@@ -25,7 +21,7 @@ function FilesPage() {
   const id = Number(courseId);
   const [stack, setStack] = useState<Folder[]>([]);
   const queryClient = Route.useRouteContext({ select: (ctx) => ctx.queryClient });
-  const { data: rootFolder } = useQuery(rootFolderQueryOptions(id));
+  const { data: rootFolder, isError: isRootError } = useQuery(rootFolderQueryOptions(id));
 
   useEffect(() => {
     if (!rootFolder) return;
@@ -46,12 +42,17 @@ function FilesPage() {
   const filesQuery = useQuery({ ...(filesOptions ?? filesQueryOptions(id, -1)), enabled: currentFolderId != null });
   const folders = foldersQuery.data ?? [];
   const files = filesQuery.data ?? [];
+  const isRestricted = isRootError || foldersQuery.isError || filesQuery.isError;
 
   useEffect(() => {
     if (currentFolderId == null) return;
     void queryClient.prefetchQuery(foldersQueryOptions(id, currentFolderId));
     void queryClient.prefetchQuery(filesQueryOptions(id, currentFolderId));
   }, [id, currentFolderId, queryClient]);
+
+  if (isRestricted) {
+    return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
+  }
 
   return (
     <div className="space-y-3">

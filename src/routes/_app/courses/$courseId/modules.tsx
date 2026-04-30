@@ -5,14 +5,14 @@ import { ModuleList } from "@/components/course/module-list";
 import { modulesQueryOptions } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/courses/$courseId/modules")({
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(modulesQueryOptions(Number(params.courseId))),
+  loader: ({ context, params }) => context.queryClient.prefetchQuery(modulesQueryOptions(Number(params.courseId))),
   component: ModulesPage,
 });
 
 function ModulesPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/modules" });
   const id = Number(courseId);
-  const { data, isPending } = useQuery(modulesQueryOptions(id));
+  const { data, isPending, isError } = useQuery(modulesQueryOptions(id));
   const modules = data ?? [];
 
   if (isPending) {
@@ -22,6 +22,7 @@ function ModulesPage() {
       </div>
     );
   }
+  if (isError) return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
   if (modules.length === 0) return <p className="text-sm text-muted-foreground">No modules.</p>;
   return <ModuleList courseId={id} modules={modules} />;
 }

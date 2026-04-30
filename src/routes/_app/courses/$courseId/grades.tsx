@@ -9,7 +9,7 @@ import { formatShortDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/courses/$courseId/grades")({
   loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(assignmentGroupsQueryOptions(Number(params.courseId))),
+    context.queryClient.prefetchQuery(assignmentGroupsQueryOptions(Number(params.courseId))),
   component: GradesPage,
 });
 
@@ -17,7 +17,7 @@ function GradesPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/grades" });
   const id = Number(courseId);
   const course = useCoursesStore((s) => s.byId(id));
-  const { data, isPending } = useQuery(assignmentGroupsQueryOptions(id));
+  const { data, isPending, isError } = useQuery(assignmentGroupsQueryOptions(id));
   const groups = data ?? [];
 
   const enrollment = course?.enrollments?.[0];
@@ -35,6 +35,10 @@ function GradesPage() {
     }
     return { earned, possible };
   }, [groups]);
+
+  if (isError) {
+    return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
+  }
 
   return (
     <div className="space-y-6">

@@ -8,13 +8,13 @@ import type { Enrollment } from "@/lib/api";
 
 export const Route = createFileRoute("/_app/courses/$courseId/people")({
   loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(enrollmentsQueryOptions(Number(params.courseId))),
+    context.queryClient.prefetchQuery(enrollmentsQueryOptions(Number(params.courseId))),
   component: PeoplePage,
 });
 
 function PeoplePage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/people" });
-  const { data, isPending } = useQuery(enrollmentsQueryOptions(Number(courseId)));
+  const { data, isPending, isError } = useQuery(enrollmentsQueryOptions(Number(courseId)));
   const enrollments = data ?? [];
 
   if (isPending) {
@@ -23,6 +23,9 @@ function PeoplePage() {
         {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
       </div>
     );
+  }
+  if (isError) {
+    return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
   }
 
   const teachers = enrollments.filter((e) => e.type === "TeacherEnrollment" || e.type === "TaEnrollment");
