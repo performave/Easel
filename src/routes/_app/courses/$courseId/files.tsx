@@ -1,12 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { IconChevronRight, IconDownload, IconFile, IconFolder } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { canvas, type CanvasFile, type Folder } from "@/lib/api";
+import { filesQueryOptions, foldersQueryOptions, rootFolderQueryOptions } from "@/lib/queries";
+import type { Folder } from "@/lib/api";
 import { formatBytes, formatShortDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/courses/$courseId/files")({
+  loader: async ({ context, params }) => {
+    const courseId = Number(params.courseId);
+    const root = await context.queryClient.ensureQueryData(rootFolderQueryOptions(courseId));
+    await Promise.all([
+      context.queryClient.ensureQueryData(foldersQueryOptions(courseId, root.id)),
+      context.queryClient.ensureQueryData(filesQueryOptions(courseId, root.id)),
+    ]);
+  },
   component: FilesPage,
 });
 
@@ -14,29 +24,34 @@ function FilesPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/files" });
   const id = Number(courseId);
   const [stack, setStack] = useState<Folder[]>([]);
-  const [folders, setFolders] = useState<Folder[] | null>(null);
-  const [files, setFiles] = useState<CanvasFile[] | null>(null);
+  const queryClient = Route.useRouteContext({ select: (ctx) => ctx.queryClient });
+  const { data: rootFolder } = useQuery(rootFolderQueryOptions(id));
 
   useEffect(() => {
-    let cancelled = false;
-    canvas.rootFolder(id).then((root) => {
-      if (cancelled) return;
-      setStack([root]);
-    });
-    return () => { cancelled = true; };
-  }, [id]);
+    if (!rootFolder) return;
+    setStack([rootFolder]);
+  }, [id, rootFolder]);
 
   const current = stack[stack.length - 1];
+  const currentFolderId = current?.id;
+  const foldersOptions = useMemo(
+    () => (currentFolderId == null ? null : foldersQueryOptions(id, currentFolderId)),
+    [id, currentFolderId],
+  );
+  const filesOptions = useMemo(
+    () => (currentFolderId == null ? null : filesQueryOptions(id, currentFolderId)),
+    [id, currentFolderId],
+  );
+  const foldersQuery = useQuery({ ...(foldersOptions ?? foldersQueryOptions(id, -1)), enabled: currentFolderId != null });
+  const filesQuery = useQuery({ ...(filesOptions ?? filesQueryOptions(id, -1)), enabled: currentFolderId != null });
+  const folders = foldersQuery.data ?? [];
+  const files = filesQuery.data ?? [];
 
   useEffect(() => {
-    if (!current) return;
-    let cancelled = false;
-    setFolders(null);
-    setFiles(null);
-    canvas.folders(id, current.id).then((v) => !cancelled && setFolders(v)).catch(() => !cancelled && setFolders([]));
-    canvas.files(id, current.id).then((v) => !cancelled && setFiles(v)).catch(() => !cancelled && setFiles([]));
-    return () => { cancelled = true; };
-  }, [id, current?.id]);
+    if (currentFolderId == null) return;
+    void queryClient.prefetchQuery(foldersQueryOptions(id, currentFolderId));
+    void queryClient.prefetchQuery(filesQueryOptions(id, currentFolderId));
+  }, [id, currentFolderId, queryClient]);
 
   return (
     <div className="space-y-3">
@@ -56,7 +71,7 @@ function FilesPage() {
         ))}
       </nav>
       <div className="overflow-hidden rounded-md border divide-y">
-        {(folders === null || files === null) && (
+        {(foldersQuery.isPending || filesQuery.isPending) && (
           <div className="space-y-1 p-3">
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
           </div>

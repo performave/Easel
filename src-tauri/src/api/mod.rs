@@ -3,7 +3,9 @@ pub mod pagination;
 
 use std::sync::Arc;
 
+use percent_encoding::percent_decode_str;
 use reqwest::cookie::Jar;
+use reqwest::Method;
 use serde::de::DeserializeOwned;
 
 use crate::auth::Session;
@@ -18,6 +20,8 @@ pub enum ApiError {
     SessionExpired,
     #[error("canvas error {status}: {body}")]
     Canvas { status: u16, body: String },
+    #[error("invalid method: {0}")]
+    InvalidMethod(String),
 }
 
 pub struct HttpClient {
@@ -81,6 +85,122 @@ impl HttpClient {
         Ok(resp.json::<T>().await?)
     }
 
+    pub async fn request_json(
+        &self,
+        session: &Session,
+        method: &str,
+        path: &str,
+        form: Option<&std::collections::HashMap<String, String>>,
+        json: Option<&serde_json::Value>,
+    ) -> Result<serde_json::Value, ApiError> {
+        let url = self.absolute_url(session, path);
+        let method = Method::from_bytes(method.as_bytes())
+            .map_err(|_| ApiError::InvalidMethod(method.to_string()))?;
+        let mut csrf = session.csrf_token.clone();
+        let mut resp = self
+            .send_request_with_csrf(
+                &url,
+                method.clone(),
+                session,
+                csrf.as_deref(),
+                form,
+                json,
+            )
+            .await?;
+
+        if Self::is_mutating(method.as_str())
+            && (resp.status() == reqwest::StatusCode::FORBIDDEN
+                || resp.status() == reqwest::StatusCode::UNAUTHORIZED
+                || resp.status() == reqwest::StatusCode::UNPROCESSABLE_ENTITY)
+        {
+            if let Some(fresh) = self.fetch_csrf_token(session).await? {
+                csrf = Some(fresh);
+                resp = self
+                    .send_request_with_csrf(&url, method, session, csrf.as_deref(), form, json)
+                    .await?;
+            }
+        }
+
+        let status = resp.status();
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            return Err(ApiError::SessionExpired);
+        }
+        if !status.is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(ApiError::Canvas {
+                status: status.as_u16(),
+                body,
+            });
+        }
+        if status == reqwest::StatusCode::NO_CONTENT {
+            return Ok(serde_json::json!({}));
+        }
+        let text = resp.text().await?;
+        if text.trim().is_empty() {
+            return Ok(serde_json::json!({}));
+        }
+        match serde_json::from_str::<serde_json::Value>(&text) {
+            Ok(v) => Ok(v),
+            Err(_) => Ok(serde_json::json!({ "raw": text })),
+        }
+    }
+
+    async fn send_request_with_csrf(
+        &self,
+        url: &str,
+        method: Method,
+        session: &Session,
+        csrf_token: Option<&str>,
+        form: Option<&std::collections::HashMap<String, String>>,
+        json: Option<&serde_json::Value>,
+    ) -> Result<reqwest::Response, ApiError> {
+        let origin = format!("https://{}", session.domain);
+        let referer = format!("{}/", origin);
+        let mut req = self
+            .client
+            .request(method, url)
+            .header("Accept", "application/json, text/plain, */*")
+            .header("X-Requested-With", "XMLHttpRequest")
+            .header("Origin", &origin)
+            .header("Referer", &referer);
+        if let Some(token) = csrf_token {
+            req = req.header("X-CSRF-Token", normalize_csrf_token(token));
+        }
+        if let Some(form_data) = form {
+            req = req.form(form_data);
+        }
+        if let Some(json_data) = json {
+            req = req.json(json_data);
+        }
+        Ok(req.send().await?)
+    }
+
+    async fn fetch_csrf_token(&self, session: &Session) -> Result<Option<String>, ApiError> {
+        let url = self.absolute_url(session, "/api/v1/csrf_token");
+        let resp = self
+            .client
+            .get(&url)
+            .header("Accept", "application/json")
+            .send()
+            .await?;
+        let status = resp.status();
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            return Err(ApiError::SessionExpired);
+        }
+        if !status.is_success() {
+            return Ok(None);
+        }
+        let body: serde_json::Value = resp.json().await?;
+        Ok(body
+            .get("csrf_token")
+            .and_then(|v| v.as_str())
+            .map(normalize_csrf_token))
+    }
+
+    fn is_mutating(method: &str) -> bool {
+        matches!(method, "POST" | "PUT" | "PATCH" | "DELETE")
+    }
+
     /// Auto-paginates a Canvas list endpoint by following `Link: rel="next"`.
     /// Returns the concatenated array of items across pages. Caps at 50 pages
     /// to avoid runaway loops on misconfigured endpoints.
@@ -125,4 +245,8 @@ impl HttpClient {
             format!("https://{}{}", session.domain, path)
         }
     }
+}
+
+fn normalize_csrf_token(token: &str) -> String {
+    percent_decode_str(token).decode_utf8_lossy().to_string()
 }

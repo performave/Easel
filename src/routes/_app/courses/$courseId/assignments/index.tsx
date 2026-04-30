@@ -1,36 +1,31 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, createFileRoute, useParams } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { IconAlertCircle, IconCheck, IconClipboardList, IconClock } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { canvas, type AssignmentGroup } from "@/lib/api";
+import { assignmentGroupsQueryOptions } from "@/lib/queries";
 import { formatRelativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/courses/$courseId/assignments/")({
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(assignmentGroupsQueryOptions(Number(params.courseId))),
   component: AssignmentsPage,
 });
 
 function AssignmentsPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/assignments/" });
   const id = Number(courseId);
-  const [groups, setGroups] = useState<AssignmentGroup[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    canvas
-      .assignmentGroups(id)
-      .then((v) => !cancelled && setGroups(v))
-      .catch(() => !cancelled && setGroups([]));
-    return () => { cancelled = true; };
-  }, [id]);
+  const { data, isPending } = useQuery(assignmentGroupsQueryOptions(id));
+  const groups = data ?? [];
 
   const sorted = useMemo(
     () => groups?.slice().sort((a, b) => a.position - b.position),
     [groups],
   );
 
-  if (groups === null) {
+  if (isPending) {
     return (
       <div className="space-y-3">
         {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}

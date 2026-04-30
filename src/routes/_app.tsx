@@ -53,6 +53,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { api, type CanvasUser } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 import { useCoursesStore } from "@/stores/courses";
+import { useDashboardPrefsStore } from "@/stores/dashboard-prefs";
 
 export const Route = createFileRoute("/_app")({
   component: AppShell,
@@ -74,6 +75,7 @@ function AppShell() {
   const [user, setUser] = useState<CanvasUser | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const courses = useCoursesStore((s) => s.courses);
+  const courseNicknames = useDashboardPrefsStore((s) => s.courseNicknames);
   const coursesStatus = useCoursesStore((s) => s.status);
   const loadCourses = useCoursesStore((s) => s.load);
 
@@ -175,11 +177,11 @@ function AppShell() {
                           render={
                             <Link to="/courses/$courseId" params={{ courseId: String(course.id) }}>
                               <CourseGlyph code={course.course_code ?? course.name} />
-                              <span className="truncate">{course.course_code ?? course.name}</span>
+                              <span className="truncate">{course.course_code ?? courseNicknames[course.id] ?? course.name}</span>
                             </Link>
                           }
                           isActive={location.pathname.startsWith(`/courses/${course.id}`)}
-                          tooltip={course.name}
+                          tooltip={courseNicknames[course.id] ?? course.name}
                         />
                       </SidebarMenuItem>
                     ))
@@ -276,7 +278,7 @@ function AppShell() {
               {courses.map((course) => (
                 <CommandItem
                   key={course.id}
-                  value={`${course.name} ${course.course_code ?? ""}`}
+                  value={`${courseNicknames[course.id] ?? course.name} ${course.course_code ?? ""}`}
                   onSelect={() => {
                     setPaletteOpen(false);
                     navigate({ to: "/courses/$courseId", params: { courseId: String(course.id) } });
@@ -284,7 +286,7 @@ function AppShell() {
                 >
                   <IconBook2 />
                   <div className="flex flex-col">
-                    <span>{course.name}</span>
+                    <span>{courseNicknames[course.id] ?? course.name}</span>
                     {course.course_code && (
                       <span className="text-xs text-muted-foreground">{course.course_code}</span>
                     )}
@@ -323,6 +325,7 @@ function CourseGlyph({ code }: { code: string }) {
 function Breadcrumbs() {
   const location = useLocation();
   const courses = useCoursesStore((s) => s.courses);
+  const courseNicknames = useDashboardPrefsStore((s) => s.courseNicknames);
   const segments = location.pathname.split("/").filter(Boolean);
   const crumbs: { label: string; to?: string }[] = [];
   if (segments.length === 0) return null;
@@ -332,7 +335,7 @@ function Breadcrumbs() {
       const courseId = Number(segments[1]);
       const course = courses.find((c) => c.id === courseId);
       crumbs.push({
-        label: course?.course_code ?? course?.name ?? `Course ${segments[1]}`,
+        label: course?.course_code ?? (course ? courseNicknames[course.id] ?? course.name : `Course ${segments[1]}`),
         to: `/courses/${segments[1]}`,
       });
       if (segments[2]) {

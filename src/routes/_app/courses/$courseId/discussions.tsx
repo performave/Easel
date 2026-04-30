@@ -1,29 +1,23 @@
-import { useEffect, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { IconMessage } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { canvas, type Discussion } from "@/lib/api";
+import { discussionsQueryOptions } from "@/lib/queries";
 import { formatRelative } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/courses/$courseId/discussions")({
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(discussionsQueryOptions(Number(params.courseId))),
   component: DiscussionsPage,
 });
 
 function DiscussionsPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/discussions" });
-  const [discussions, setDiscussions] = useState<Discussion[] | null>(null);
+  const { data, isPending } = useQuery(discussionsQueryOptions(Number(courseId)));
+  const discussions = data ?? [];
 
-  useEffect(() => {
-    let cancelled = false;
-    canvas
-      .discussions(Number(courseId))
-      .then((v) => !cancelled && setDiscussions(v))
-      .catch(() => !cancelled && setDiscussions([]));
-    return () => { cancelled = true; };
-  }, [courseId]);
-
-  if (discussions === null) {
+  if (isPending) {
     return (
       <div className="space-y-2">
         {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}

@@ -4,6 +4,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useCoursesStore } from "@/stores/courses";
+import { useDashboardPrefsStore } from "@/stores/dashboard-prefs";
 
 export const Route = createFileRoute("/_app/courses/")({
   component: CoursesPage,
@@ -13,8 +14,17 @@ function CoursesPage() {
   const courses = useCoursesStore((s) => s.courses);
   const status = useCoursesStore((s) => s.status);
   const load = useCoursesStore((s) => s.load);
+  const courseOrder = useDashboardPrefsStore((s) => s.courseOrder);
+  const nicknames = useDashboardPrefsStore((s) => s.courseNicknames);
 
   useEffect(() => { if (status === "idle") load(); }, [status, load]);
+
+  const orderedCourses = (() => {
+    const map = new Map(courses.map((c) => [c.id, c]));
+    const ordered = courseOrder.map((id) => map.get(id)).filter((c): c is NonNullable<typeof c> => Boolean(c));
+    const seen = new Set(ordered.map((c) => c.id));
+    return [...ordered, ...courses.filter((c) => !seen.has(c.id))];
+  })();
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
@@ -28,7 +38,7 @@ function CoursesPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((course) => {
+          {orderedCourses.map((course) => {
             const enrollment = course.enrollments?.[0];
             return (
               <Link
@@ -39,7 +49,7 @@ function CoursesPage() {
                 <Card className="h-full transition-colors hover:bg-accent">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-base leading-snug">{course.name}</CardTitle>
+                      <CardTitle className="text-base leading-snug">{nicknames[course.id] ?? course.name}</CardTitle>
                       {enrollment?.computed_current_grade && (
                         <Badge variant="secondary">{enrollment.computed_current_grade}</Badge>
                       )}

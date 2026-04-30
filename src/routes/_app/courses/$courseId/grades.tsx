@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { canvas, type AssignmentGroup } from "@/lib/api";
+import { assignmentGroupsQueryOptions } from "@/lib/queries";
 import { useCoursesStore } from "@/stores/courses";
 import { formatShortDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/courses/$courseId/grades")({
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(assignmentGroupsQueryOptions(Number(params.courseId))),
   component: GradesPage,
 });
 
@@ -14,18 +17,12 @@ function GradesPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/grades" });
   const id = Number(courseId);
   const course = useCoursesStore((s) => s.byId(id));
-  const [groups, setGroups] = useState<AssignmentGroup[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    canvas.assignmentGroups(id).then((v) => !cancelled && setGroups(v)).catch(() => !cancelled && setGroups([]));
-    return () => { cancelled = true; };
-  }, [id]);
+  const { data, isPending } = useQuery(assignmentGroupsQueryOptions(id));
+  const groups = data ?? [];
 
   const enrollment = course?.enrollments?.[0];
 
   const totals = useMemo(() => {
-    if (!groups) return null;
     let earned = 0;
     let possible = 0;
     for (const g of groups) {
@@ -64,7 +61,7 @@ function GradesPage() {
         </CardContent>
       </Card>
 
-      {groups === null ? (
+      {isPending ? (
         <Skeleton className="h-64 w-full" />
       ) : (
         <div className="overflow-hidden rounded-md border">

@@ -1,25 +1,23 @@
-import { useEffect, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { canvas, type Enrollment } from "@/lib/api";
+import { enrollmentsQueryOptions } from "@/lib/queries";
+import type { Enrollment } from "@/lib/api";
 
 export const Route = createFileRoute("/_app/courses/$courseId/people")({
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(enrollmentsQueryOptions(Number(params.courseId))),
   component: PeoplePage,
 });
 
 function PeoplePage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/people" });
-  const [enrollments, setEnrollments] = useState<Enrollment[] | null>(null);
+  const { data, isPending } = useQuery(enrollmentsQueryOptions(Number(courseId)));
+  const enrollments = data ?? [];
 
-  useEffect(() => {
-    let cancelled = false;
-    canvas.enrollments(Number(courseId)).then((v) => !cancelled && setEnrollments(v)).catch(() => !cancelled && setEnrollments([]));
-    return () => { cancelled = true; };
-  }, [courseId]);
-
-  if (enrollments === null) {
+  if (isPending) {
     return (
       <div className="grid gap-2 sm:grid-cols-2">
         {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}

@@ -1,5 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 
+type RequestArgs = {
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  path: string;
+  form?: Record<string, string>;
+  json?: unknown;
+};
+
 export type BootstrapInfo = {
   authenticated: boolean;
   domain: string | null;
@@ -182,6 +189,8 @@ export type ToDoItem = {
   course_id?: number;
   group_id?: number;
   html_url: string;
+  ignore?: string;
+  ignore_permanently?: string;
 };
 
 export const api = {
@@ -192,6 +201,7 @@ export const api = {
   logout: () => invoke<void>("logout"),
   get: <T = unknown>(path: string) => invoke<T>("canvas_get", { path }),
   getAll: <T = unknown>(path: string) => invoke<T[]>("canvas_get_all", { path }),
+  request: <T = unknown>(args: RequestArgs) => invoke<T>("canvas_request", args),
 };
 
 export const canvas = {
@@ -245,4 +255,36 @@ export const canvas = {
     api.getAll<Enrollment>(`/api/v1/courses/${courseId}/enrollments?include[]=avatar_url&per_page=100`),
   todo: () => api.getAll<ToDoItem>("/api/v1/users/self/todo"),
   upcomingEvents: () => api.getAll<CalendarEvent>("/api/v1/users/self/upcoming_events"),
+  courseNicknames: () => api.get<Record<string, string>>("/api/v1/users/self/course_nicknames"),
+  setCourseNickname: (courseId: number, nickname: string) =>
+    api.request({
+      method: "PUT",
+      path: `/api/v1/users/self/course_nicknames/${courseId}`,
+      form: { nickname },
+    }),
+  clearCourseNickname: (courseId: number) =>
+    api.request({
+      method: "DELETE",
+      path: `/api/v1/users/self/course_nicknames/${courseId}`,
+    }),
+  dashboardPositions: (userId: number) =>
+    api.get<{ dashboard_positions: Record<string, number> }>(`/api/v1/users/${userId}/dashboard_positions`),
+  setDashboardPositions: (userId: number, positions: Record<string, number>) => {
+    const form: Record<string, string> = {};
+    for (const [asset, pos] of Object.entries(positions)) {
+      form[`dashboard_positions[${asset}]`] = String(pos);
+    }
+    return api.request<{ dashboard_positions: Record<string, number> }>({
+      method: "PUT",
+      path: `/api/v1/users/${userId}/dashboard_positions`,
+      form,
+    });
+  },
+  colors: (userId: number) => api.get<{ custom_colors: Record<string, string> }>(`/api/v1/users/${userId}/colors`),
+  setCourseColor: (userId: number, courseId: number, hexcode: string) =>
+    api.request({
+      method: "PUT",
+      path: `/api/v1/users/${userId}/colors/course_${courseId}`,
+      form: { hexcode: hexcode.replace("#", "") },
+    }),
 };

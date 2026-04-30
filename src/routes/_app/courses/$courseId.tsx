@@ -1,11 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, Outlet, createFileRoute, useLocation, useParams } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { canvas, type Course } from "@/lib/api";
+import { courseQueryOptions, modulesQueryOptions, assignmentGroupsQueryOptions, discussionsQueryOptions, enrollmentsQueryOptions, rootFolderQueryOptions } from "@/lib/queries";
 import { useCoursesStore } from "@/stores/courses";
+import { useDashboardPrefsStore } from "@/stores/dashboard-prefs";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/courses/$courseId")({
+  loader: async ({ context, params }) => {
+    const id = Number(params.courseId);
+    await context.queryClient.ensureQueryData(courseQueryOptions(id));
+    void context.queryClient.prefetchQuery(modulesQueryOptions(id));
+    void context.queryClient.prefetchQuery(assignmentGroupsQueryOptions(id));
+    void context.queryClient.prefetchQuery(discussionsQueryOptions(id));
+    void context.queryClient.prefetchQuery(enrollmentsQueryOptions(id));
+    void context.queryClient.prefetchQuery(rootFolderQueryOptions(id));
+  },
   component: CourseLayout,
 });
 
@@ -24,18 +35,21 @@ function CourseLayout() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId" });
   const id = Number(courseId);
   const fromStore = useCoursesStore((s) => s.byId(id));
-  const [course, setCourse] = useState<Course | null>(fromStore ?? null);
+  const { data: course } = useQuery({
+    ...courseQueryOptions(id),
+    placeholderData: fromStore,
+  });
   const location = useLocation();
+  const courseNicknames = useDashboardPrefsStore((s) => s.courseNicknames);
+  const queryClient = Route.useRouteContext({ select: (ctx) => ctx.queryClient });
 
   useEffect(() => {
-    if (fromStore) setCourse(fromStore);
-  }, [fromStore]);
-
-  useEffect(() => {
-    let cancelled = false;
-    canvas.course(id).then((c) => !cancelled && setCourse(c)).catch(() => {});
-    return () => { cancelled = true; };
-  }, [id]);
+    void queryClient.prefetchQuery(modulesQueryOptions(id));
+    void queryClient.prefetchQuery(assignmentGroupsQueryOptions(id));
+    void queryClient.prefetchQuery(discussionsQueryOptions(id));
+    void queryClient.prefetchQuery(enrollmentsQueryOptions(id));
+    void queryClient.prefetchQuery(rootFolderQueryOptions(id));
+  }, [id, queryClient]);
 
   const base = `/courses/${courseId}`;
   const activeTab = (() => {
@@ -56,7 +70,7 @@ function CourseLayout() {
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {course.course_code}
               </p>
-              <h1 className="text-2xl font-semibold tracking-tight">{course.name}</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">{courseNicknames[course.id] ?? course.name}</h1>
               {course.term?.name && (
                 <p className="text-sm text-muted-foreground">{course.term.name}</p>
               )}

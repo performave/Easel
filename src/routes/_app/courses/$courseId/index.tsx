@@ -1,30 +1,29 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { canvas, type Announcement, type Module } from "@/lib/api";
 import { ModuleList } from "@/components/course/module-list";
 import { formatRelativeDate } from "@/lib/format";
+import { courseAnnouncementsQueryOptions, modulesQueryOptions } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/courses/$courseId/")({
+  loader: async ({ context, params }) => {
+    const id = Number(params.courseId);
+    await Promise.all([
+      context.queryClient.ensureQueryData(modulesQueryOptions(id)),
+      context.queryClient.ensureQueryData(courseAnnouncementsQueryOptions(id)),
+    ]);
+  },
   component: CourseHome,
 });
 
 function CourseHome() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/" });
   const id = Number(courseId);
-  const [modules, setModules] = useState<Module[] | null>(null);
-  const [announcements, setAnnouncements] = useState<Announcement[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    canvas.modules(id).then((v) => !cancelled && setModules(v)).catch(() => !cancelled && setModules([]));
-    canvas
-      .announcements([`course_${id}`])
-      .then((v) => !cancelled && setAnnouncements(v.slice(0, 5)))
-      .catch(() => !cancelled && setAnnouncements([]));
-    return () => { cancelled = true; };
-  }, [id]);
+  const { data: modulesData, isPending: modulesPending } = useQuery(modulesQueryOptions(id));
+  const { data: announcementsData, isPending: announcementsPending } = useQuery(courseAnnouncementsQueryOptions(id));
+  const modules = modulesData ?? [];
+  const announcements = announcementsData ?? [];
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -32,7 +31,7 @@ function CourseHome() {
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
           Modules
         </h2>
-        {modules === null ? (
+        {modulesPending ? (
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
           </div>
@@ -49,12 +48,12 @@ function CourseHome() {
             <CardDescription>Latest from the course.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {announcements === null ? (
+            {announcementsPending ? (
               Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
             ) : announcements.length === 0 ? (
               <p className="text-sm text-muted-foreground">No announcements yet.</p>
             ) : (
-              announcements.map((a) => (
+              announcements.slice(0, 5).map((a) => (
                 <div key={a.id} className="rounded-md border p-2">
                   <p className="truncate text-sm font-medium">{a.title}</p>
                   <p className="text-xs text-muted-foreground">

@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::collections::HashMap;
 use tauri::{AppHandle, State};
 
 use crate::api::courses::Course;
@@ -92,6 +93,25 @@ pub async fn canvas_get_all(
         message: "not authenticated".into(),
     })?;
     Ok(state.http.get_paginated(session, &path).await?)
+}
+
+#[tauri::command]
+pub async fn canvas_request(
+    state: State<'_, AppState>,
+    method: String,
+    path: String,
+    form: Option<HashMap<String, String>>,
+    json: Option<serde_json::Value>,
+) -> Result<serde_json::Value, CommandError> {
+    let path = require_safe_path(&path)?;
+    let guard = state.session.read().await;
+    let session = guard.as_ref().ok_or_else(|| CommandError {
+        message: "not authenticated".into(),
+    })?;
+    Ok(state
+        .http
+        .request_json(session, &method, &path, form.as_ref(), json.as_ref())
+        .await?)
 }
 
 fn require_safe_path(path: &str) -> Result<String, CommandError> {

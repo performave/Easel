@@ -39,6 +39,7 @@ pub fn run() {
             commands::list_courses,
             commands::canvas_get,
             commands::canvas_get_all,
+            commands::canvas_request,
             commands::logout,
         ])
         .run(tauri::generate_context!())

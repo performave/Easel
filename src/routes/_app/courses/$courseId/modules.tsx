@@ -1,25 +1,21 @@
-import { useEffect, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ModuleList } from "@/components/course/module-list";
-import { canvas, type Module } from "@/lib/api";
+import { modulesQueryOptions } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/courses/$courseId/modules")({
+  loader: ({ context, params }) => context.queryClient.ensureQueryData(modulesQueryOptions(Number(params.courseId))),
   component: ModulesPage,
 });
 
 function ModulesPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/modules" });
   const id = Number(courseId);
-  const [modules, setModules] = useState<Module[] | null>(null);
+  const { data, isPending } = useQuery(modulesQueryOptions(id));
+  const modules = data ?? [];
 
-  useEffect(() => {
-    let cancelled = false;
-    canvas.modules(id).then((v) => !cancelled && setModules(v)).catch(() => !cancelled && setModules([]));
-    return () => { cancelled = true; };
-  }, [id]);
-
-  if (modules === null) {
+  if (isPending) {
     return (
       <div className="space-y-2">
         {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}

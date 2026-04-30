@@ -1,11 +1,16 @@
 import { useEffect } from "react";
-import { Outlet, createRootRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Outlet, createRootRouteWithContext, useNavigate, useRouterState } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import type { QueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/lib/api";
 
-export const Route = createRootRoute({
+type RouterContext = {
+  queryClient: QueryClient;
+};
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: Root,
 });
 
