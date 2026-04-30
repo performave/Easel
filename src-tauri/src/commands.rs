@@ -18,17 +18,36 @@ impl<E: std::fmt::Display> From<E> for CommandError {
     }
 }
 
+#[derive(Debug, Serialize)]
+pub struct BootstrapInfo {
+    pub authenticated: bool,
+    pub domain: Option<String>,
+}
+
+#[tauri::command]
+pub async fn bootstrap(state: State<'_, AppState>) -> Result<BootstrapInfo, CommandError> {
+    let guard = state.session.read().await;
+    Ok(BootstrapInfo {
+        authenticated: guard.is_some(),
+        domain: guard.as_ref().map(|s| s.domain.clone()),
+    })
+}
+
 #[tauri::command]
 pub async fn begin_login(
     app: AppHandle,
     state: State<'_, AppState>,
     domain: String,
-) -> Result<(), CommandError> {
+) -> Result<BootstrapInfo, CommandError> {
     let session = auth::begin_login(&app, &domain).await?;
     state.http.seed_from(&session);
     auth::save(&session)?;
+    let info = BootstrapInfo {
+        authenticated: true,
+        domain: Some(session.domain.clone()),
+    };
     *state.session.write().await = Some(session);
-    Ok(())
+    Ok(info)
 }
 
 #[tauri::command]

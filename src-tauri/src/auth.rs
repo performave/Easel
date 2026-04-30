@@ -1,7 +1,13 @@
+use std::sync::Mutex;
+
 use serde::{Deserialize, Serialize};
+use tauri::webview::PageLoadEvent;
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tokio::sync::oneshot;
 
 const KEYRING_SERVICE: &str = "com.performave.slayte";
 const KEYRING_USER: &str = "canvas-session";
+const LOGIN_WINDOW_LABEL: &str = "canvas-login";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Session {
@@ -24,6 +30,10 @@ pub enum AuthError {
     Keyring(#[from] keyring::Error),
     #[error("serde error: {0}")]
     Serde(#[from] serde_json::Error),
+    #[error("tauri error: {0}")]
+    Tauri(#[from] tauri::Error),
+    #[error("invalid domain: {0}")]
+    InvalidDomain(String),
     #[error("login cancelled")]
     Cancelled,
     #[error("session expired")]
@@ -54,10 +64,114 @@ pub fn clear() -> Result<(), AuthError> {
     }
 }
 
-// TODO: open a Tauri WebviewWindow at https://{domain}/login,
-// listen for navigation to the post-SSO dashboard, then read the platform
-// cookie store (WKHTTPCookieStore on macOS, ICoreWebView2CookieManager on
-// Windows, webkit2gtk on Linux) to extract _normandy_session + _csrf_token.
-pub async fn begin_login(_app: &tauri::AppHandle, _domain: &str) -> Result<Session, AuthError> {
-    Err(AuthError::Cancelled)
+fn normalize_domain(input: &str) -> Result<String, AuthError> {
+    let trimmed = input
+        .trim()
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .trim_end_matches('/')
+        .to_string();
+    if trimmed.is_empty() || trimmed.contains('/') || trimmed.contains(' ') {
+        return Err(AuthError::InvalidDomain(input.to_string()));
+    }
+    Ok(trimmed)
+}
+
+/// Opens a WebviewWindow at https://{domain}/login, waits for the post-SSO
+/// redirect back to the Canvas root, then harvests session cookies (including
+/// HttpOnly ones) via the platform cookie store.
+pub async fn begin_login(app: &AppHandle, domain: &str) -> Result<Session, AuthError> {
+    let domain = normalize_domain(domain)?;
+    let login_url = url::Url::parse(&format!("https://{}/login", domain))
+        .map_err(|_| AuthError::InvalidDomain(domain.clone()))?;
+    let base_url = url::Url::parse(&format!("https://{}/", domain))
+        .map_err(|_| AuthError::InvalidDomain(domain.clone()))?;
+
+    if let Some(existing) = app.get_webview_window(LOGIN_WINDOW_LABEL) {
+        let _ = existing.close();
+    }
+
+    let (tx, rx) = oneshot::channel::<Result<(), AuthError>>();
+    let tx = std::sync::Arc::new(Mutex::new(Some(tx)));
+
+    let domain_for_load = domain.clone();
+    let tx_for_load = tx.clone();
+    let window = WebviewWindowBuilder::new(
+        app,
+        LOGIN_WINDOW_LABEL,
+        WebviewUrl::External(login_url),
+    )
+    .title(format!("Sign in to {}", domain))
+    .inner_size(960.0, 760.0)
+    .on_page_load(move |_webview, payload| {
+        if !matches!(payload.event(), PageLoadEvent::Finished) {
+            return;
+        }
+        let url = payload.url();
+        if url.host_str() != Some(&domain_for_load) {
+            return;
+        }
+        // Canvas drops you at "/" (or "/?login_success=1") after SSO.
+        // The /login path is the form we started on, so ignore it.
+        let path = url.path();
+        if path == "/login" || path.starts_with("/login/") {
+            return;
+        }
+        if let Some(sender) = tx_for_load.lock().unwrap().take() {
+            let _ = sender.send(Ok(()));
+        }
+    })
+    .build()?;
+
+    let tx_for_close = tx.clone();
+    window.on_window_event(move |event| {
+        if matches!(event, tauri::WindowEvent::CloseRequested { .. }) {
+            if let Some(sender) = tx_for_close.lock().unwrap().take() {
+                let _ = sender.send(Err(AuthError::Cancelled));
+            }
+        }
+    });
+
+    let outcome = rx.await.unwrap_or(Err(AuthError::Cancelled));
+    let raw_cookies = window.cookies_for_url(base_url).ok();
+    let _ = window.close();
+    outcome?;
+
+    let raw_cookies = raw_cookies.ok_or(AuthError::Cancelled)?;
+    let mut cookies = Vec::new();
+    let mut csrf_token = None;
+    for c in raw_cookies {
+        let name = c.name().to_string();
+        let value = c.value().to_string();
+        let cdomain = c
+            .domain()
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| domain.clone());
+        let path = c
+            .path()
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "/".to_string());
+        if name == "_csrf_token" {
+            csrf_token = Some(value.clone());
+        }
+        cookies.push(Cookie {
+            name,
+            value,
+            domain: cdomain,
+            path,
+        });
+    }
+
+    let has_session = cookies
+        .iter()
+        .any(|c| c.name == "_normandy_session" || c.name == "canvas_session");
+    if !has_session {
+        return Err(AuthError::Cancelled);
+    }
+
+    Ok(Session {
+        domain,
+        cookies,
+        csrf_token,
+    })
 }
