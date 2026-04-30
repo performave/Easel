@@ -135,4 +135,61 @@
       radial-gradient(circle at top right, oklch(0.96 0.03 170 / 45%), transparent 42%),
       radial-gradient(circle at 12% 26%, oklch(0.97 0.02 225 / 55%), transparent 40%);
   }
+
+  .canvas-html {
+    color: inherit;
+    line-height: 1.6;
+  }
+
+  .canvas-html p,
+  .canvas-html ul,
+  .canvas-html ol,
+  .canvas-html blockquote,
+  .canvas-html table,
+  .canvas-html pre,
+  .canvas-html figure {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .canvas-html ol {
+    list-style: decimal;
+    padding-left: 1.5rem;
+  }
+
+  .canvas-html ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+  }
+
+  .canvas-html li {
+    margin: 0.35rem 0;
+  }
+
+  .canvas-html a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .canvas-html strong,
+  .canvas-html b {
+    font-weight: 600;
+  }
+
+  .canvas-html p > strong:only-child,
+  .canvas-html p > b:only-child,
+  .canvas-html li > strong:only-child,
+  .canvas-html li > b:only-child,
+  .canvas-html div > strong:only-child,
+  .canvas-html div > b:only-child {
+    font-weight: inherit;
+  }
+
+  .canvas-html img,
+  .canvas-html video,
+  .canvas-html iframe {
+    max-width: 100%;
+    height: auto;
+  }
 }

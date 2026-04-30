@@ -1,6 +1,7 @@
 use serde::Serialize;
 use std::collections::HashMap;
 use tauri::{AppHandle, State};
+use url::Url;
 
 use crate::api::courses::Course;
 use crate::auth;
@@ -114,6 +115,38 @@ pub async fn canvas_request(
         .await?)
 }
 
+#[tauri::command]
+pub async fn canvas_asset_data_url(
+    state: State<'_, AppState>,
+    path_or_url: String,
+) -> Result<String, CommandError> {
+    let guard = state.session.read().await;
+    let session = guard.as_ref().ok_or_else(|| CommandError {
+        message: "not authenticated".into(),
+    })?;
+
+    let url = resolve_canvas_asset_url(session, &path_or_url)?;
+    let resp = state.http.client.get(&url).send().await?;
+    let status = resp.status();
+    if !status.is_success() {
+        let body = resp.text().await.unwrap_or_default();
+        return Err(CommandError {
+            message: format!("canvas error {}: {}", status.as_u16(), body),
+        });
+    }
+
+    let content_type = resp
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.split(';').next().unwrap_or("application/octet-stream"))
+        .unwrap_or("application/octet-stream")
+        .to_string();
+    let bytes = resp.bytes().await?;
+    let b64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);
+    Ok(format!("data:{};base64,{}", content_type, b64))
+}
+
 fn require_safe_path(path: &str) -> Result<String, CommandError> {
     if !path.starts_with('/') {
         return Err(CommandError {
@@ -121,6 +154,27 @@ fn require_safe_path(path: &str) -> Result<String, CommandError> {
         });
     }
     Ok(path.to_string())
+}
+
+fn resolve_canvas_asset_url(session: &auth::Session, path_or_url: &str) -> Result<String, CommandError> {
+    if path_or_url.starts_with('/') {
+        return Ok(format!("https://{}{}", session.domain, path_or_url));
+    }
+
+    let parsed = Url::parse(path_or_url).map_err(|_| CommandError {
+        message: "invalid asset URL".into(),
+    })?;
+
+    let host = parsed.host_str().ok_or_else(|| CommandError {
+        message: "invalid asset URL host".into(),
+    })?;
+    if !host.eq_ignore_ascii_case(&session.domain) {
+        return Err(CommandError {
+            message: "asset URL must be on authenticated Canvas domain".into(),
+        });
+    }
+
+    Ok(parsed.to_string())
 }
 
 #[tauri::command]

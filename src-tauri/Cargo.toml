@@ -25,3 +25,4 @@ keyring = { version = "3", features = ["apple-native", "windows-native", "linux-
 thiserror = "2"
 futures-util = "0.3"
 percent-encoding = "2"
+base64 = "0.22"

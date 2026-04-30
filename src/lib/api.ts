@@ -202,6 +202,8 @@ export const api = {
   get: <T = unknown>(path: string) => invoke<T>("canvas_get", { path }),
   getAll: <T = unknown>(path: string) => invoke<T[]>("canvas_get_all", { path }),
   request: <T = unknown>(args: RequestArgs) => invoke<T>("canvas_request", args),
+  canvasAssetDataUrl: (pathOrUrl: string) =>
+    invoke<string>("canvas_asset_data_url", { pathOrUrl }),
 };
 
 export const canvas = {
