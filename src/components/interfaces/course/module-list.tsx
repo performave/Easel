@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { Menu, MenuItem } from "@tauri-apps/api/menu";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { api } from "@/lib/api";
 import {
   IconBook,
   IconChevronRight,
@@ -17,6 +21,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -135,47 +140,110 @@ function ModuleRow({
   );
 }
 
+type DownloadState = { downloaded: number; total: number | null } | null;
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KiB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
 function ItemRow({ courseId, item }: { courseId: number; item: ModuleItem }) {
+  const [dlState, setDlState] = useState<DownloadState>(null);
+
   if (item.type === "SubHeader") {
     return <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{item.title}</p>;
   }
   const Icon = ICON[item.type] ?? IconBook;
   const indent = Math.min(item.indent ?? 0, 5);
-  const inner = (
-    <>
-      <Icon className="size-4 shrink-0 text-muted-foreground" />
-      <span className="truncate text-sm">{item.title}</span>
-      {item.completion_requirement?.completed && (
-        <span className="ml-auto text-xs text-emerald-600">Done</span>
-      )}
-    </>
-  );
-  const className = cn(
-    "flex items-center gap-2 px-3 py-2 hover:bg-accent",
-  );
   const style = { paddingLeft: `${0.75 + indent * 0.75}rem` };
+  const rowClass = cn("flex items-center gap-2 px-3 py-2 hover:bg-accent");
 
   if (item.type === "Assignment" && item.content_id) {
     return (
       <Link
         to="/courses/$courseId/assignments/$assignmentId"
         params={{ courseId: String(courseId), assignmentId: String(item.content_id) }}
-        className={className}
+        className={rowClass}
         style={style}
       >
-        {inner}
+        <Icon className="size-4 shrink-0 text-muted-foreground" />
+        <span className="truncate text-sm">{item.title}</span>
+        {item.completion_requirement?.completed && (
+          <span className="ml-auto text-xs text-emerald-600">Done</span>
+        )}
       </Link>
     );
   }
+
+  if (item.type === "File" && item.content_id) {
+    const pct = dlState?.total ? (dlState.downloaded / dlState.total) * 100 : null;
+    return (
+      <div className="relative">
+        <button
+          className={cn(rowClass, "w-full text-left", dlState && "pointer-events-none opacity-70")}
+          style={style}
+          disabled={!!dlState}
+          onClick={() => {
+            const fileId = item.content_id!;
+            setDlState({ downloaded: 0, total: null });
+            const unlistenPromise = listen<{ file_id: number; downloaded: number; total: number | null }>(
+              "file-download-progress",
+              (event) => {
+                if (event.payload.file_id !== fileId) return;
+                setDlState({ downloaded: event.payload.downloaded, total: event.payload.total });
+              },
+            );
+            api.downloadAndOpenFile(fileId).finally(() => {
+              unlistenPromise.then((unlisten) => unlisten());
+              setDlState(null);
+            });
+          }}
+          onContextMenu={async (e) => {
+            e.preventDefault();
+            const url = item.html_url;
+            if (!url) return;
+            const menu = await Menu.new({
+              items: [
+                await MenuItem.new({ text: "Open in browser", action: () => openUrl(url) }),
+              ],
+            });
+            await menu.popup();
+          }}
+        >
+          <Icon className="size-4 shrink-0 text-muted-foreground" />
+          <span className="truncate text-sm">{item.title}</span>
+          {dlState ? (
+            <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+              {formatBytes(dlState.downloaded)}
+              {dlState.total ? ` / ${formatBytes(dlState.total)}` : ""}
+            </span>
+          ) : item.completion_requirement?.completed ? (
+            <span className="ml-auto text-xs text-emerald-600">Done</span>
+          ) : null}
+        </button>
+        {dlState && (
+          <Progress
+            value={pct ?? 0}
+            className="absolute bottom-0 left-0 right-0 h-0.5 rounded-none"
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <a
       href={item.html_url ?? item.external_url ?? "#"}
       target="_blank"
       rel="noreferrer"
-      className={className}
+      className={rowClass}
       style={style}
     >
-      {inner}
+      <Icon className="size-4 shrink-0 text-muted-foreground" />
+      <span className="truncate text-sm">{item.title}</span>
+      {item.completion_requirement?.completed && (
+        <span className="ml-auto text-xs text-emerald-600">Done</span>
+      )}
     </a>
   );
 }

@@ -204,6 +204,8 @@ export const api = {
   request: <T = unknown>(args: RequestArgs) => invoke<T>("canvas_request", args),
   canvasAssetDataUrl: (pathOrUrl: string) =>
     invoke<string>("canvas_asset_data_url", { pathOrUrl }),
+  downloadAndOpenFile: (fileId: number) =>
+    invoke<void>("download_and_open_file", { fileId }),
 };
 
 export const canvas = {

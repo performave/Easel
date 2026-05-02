@@ -41,6 +41,7 @@ pub fn run() {
             commands::canvas_get_all,
             commands::canvas_request,
             commands::canvas_asset_data_url,
+            commands::download_and_open_file,
             commands::logout,
         ])
         .run(tauri::generate_context!())

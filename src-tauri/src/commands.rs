@@ -1,6 +1,8 @@
+use futures_util::StreamExt;
 use serde::Serialize;
 use std::collections::HashMap;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
+use tauri_plugin_opener::OpenerExt;
 use url::Url;
 
 use crate::api::courses::Course;
@@ -191,6 +193,72 @@ pub async fn list_courses(state: State<'_, AppState>) -> Result<Vec<Course>, Com
         )
         .await?;
     Ok(courses)
+}
+
+#[derive(Clone, Serialize)]
+struct DownloadProgress {
+    file_id: u64,
+    downloaded: u64,
+    total: Option<u64>,
+}
+
+#[tauri::command]
+pub async fn download_and_open_file(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    file_id: u64,
+) -> Result<(), CommandError> {
+    let path = format!("/api/v1/files/{}", file_id);
+    let guard = state.session.read().await;
+    let session = guard.as_ref().ok_or_else(|| CommandError {
+        message: "not authenticated".into(),
+    })?;
+
+    let file_info = state.http.get_json::<serde_json::Value>(session, &path).await?;
+    let download_url = file_info["url"].as_str().ok_or_else(|| CommandError {
+        message: "missing download URL in file metadata".into(),
+    })?.to_string();
+    let filename = file_info["filename"]
+        .as_str()
+        .unwrap_or("download")
+        .to_string();
+    drop(guard);
+
+    let safe_name = std::path::Path::new(&filename)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("download")
+        .to_string();
+
+    let resp = state.http.client.get(&download_url).send().await?;
+    let total = resp.content_length();
+    let mut stream = resp.bytes_stream();
+
+    let mut file_data: Vec<u8> = Vec::new();
+    if let Some(t) = total {
+        file_data.reserve(t as usize);
+    }
+    let mut downloaded = 0u64;
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        downloaded += chunk.len() as u64;
+        file_data.extend_from_slice(&chunk);
+        let _ = app.emit("file-download-progress", DownloadProgress {
+            file_id,
+            downloaded,
+            total,
+        });
+    }
+
+    let dest = std::env::temp_dir().join(&safe_name);
+    std::fs::write(&dest, &file_data)?;
+
+    app.opener()
+        .open_path(dest.to_string_lossy().as_ref(), None::<&str>)
+        .map_err(|e| CommandError { message: e.to_string() })?;
+
+    Ok(())
 }
 
 #[tauri::command]
