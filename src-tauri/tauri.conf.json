@@ -31,5 +31,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "$TAURI_UPDATER_ENDPOINT"
+      ],
+      "pubkey": "$TAURI_SIGNING_PUBLIC_KEY"
+    }
   }
 }

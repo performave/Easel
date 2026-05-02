@@ -1,0 +1,151 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: ""
+          - platform: windows-latest
+            args: ""
+          - platform: ubuntu-22.04
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Import Apple signing certificate
+        if: matrix.platform == 'macos-latest'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_KEYCHAIN_PASSWORD }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/build_certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Set release version from tag
+        env:
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          node <<'EOF'
+          const fs = require("fs");
+
+          const ref = process.env.GITHUB_REF || "";
+          const refName = process.env.GITHUB_REF_NAME || "";
+
+          if (!ref.startsWith("refs/tags/")) {
+            throw new Error(`Release workflow must run on a tag. Received ref: ${ref || "<empty>"}`);
+          }
+
+          const match = /^v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$/.exec(refName);
+          if (!match) {
+            throw new Error(`Invalid tag format: ${refName}. Expected vX.Y.Z or vX.Y.Z-prerelease[+build].`);
+          }
+
+          const version = match[1];
+
+          const packageJsonPath = "package.json";
+          const cargoTomlPath = "src-tauri/Cargo.toml";
+
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+          packageJson.version = version;
+          fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+
+          const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
+          const packageSection = /(^\[package\][\s\S]*?)(^\[[^\]]+\]|\s*$)/m;
+          if (!packageSection.test(cargoToml)) {
+            throw new Error(`Could not find [package] section in ${cargoTomlPath}`);
+          }
+
+          const updatedCargoToml = cargoToml.replace(packageSection, (full, sectionBody, tail) => {
+            const updatedSectionBody = sectionBody.replace(/^version\s*=\s*"[^"]*"\s*$/m, `version = "${version}"`);
+            if (updatedSectionBody === sectionBody) {
+              throw new Error(`Could not find package version in ${cargoTomlPath}`);
+            }
+            return `${updatedSectionBody}${tail}`;
+          });
+
+          fs.writeFileSync(cargoTomlPath, updatedCargoToml);
+
+          const verifyPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+          if (verifyPackageJson.version !== version) {
+            throw new Error(`package.json version update failed. Expected ${version}, got ${verifyPackageJson.version}`);
+          }
+
+          const verifyCargoToml = fs.readFileSync(cargoTomlPath, "utf8");
+          const cargoVersionMatch = verifyCargoToml.match(/(^\[package\][\s\S]*?^version\s*=\s*"([^"]+)"\s*$)/m);
+          if (!cargoVersionMatch || cargoVersionMatch[2] !== version) {
+            throw new Error(`Cargo.toml version update failed. Expected ${version}.`);
+          }
+
+          const prerelease = version.includes("-");
+          fs.appendFileSync(process.env.GITHUB_ENV, `RELEASE_VERSION=${version}\n`);
+          fs.appendFileSync(process.env.GITHUB_ENV, `RELEASE_PRERELEASE=${prerelease}\n`);
+          EOF
+
+      - name: Prepare App Store Connect API key
+        if: matrix.platform == 'macos-latest'
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+        run: |
+          API_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+          printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$API_KEY_PATH"
+          echo "APPLE_API_KEY_PATH=$API_KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Build and publish release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          TAURI_SIGNING_PUBLIC_KEY: ${{ secrets.TAURI_SIGNING_PUBLIC_KEY }}
+          TAURI_UPDATER_ENDPOINT: https://github.com/${{ github.repository }}/releases/latest/download/latest.json
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_PATH: ${{ env.APPLE_API_KEY_PATH }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Easel v${{ env.RELEASE_VERSION }}"
+          releaseBody: "See the assets below for this release."
+          releaseDraft: true
+          prerelease: ${{ env.RELEASE_PRERELEASE }}
+          args: ${{ matrix.args }}
