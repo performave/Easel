@@ -32,11 +32,11 @@ function CourseHome() {
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <section className="lg:col-span-2">
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Modules
-        </h2>
         {modulesPending ? (
           <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Modules</h2>
+            </div>
             {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
           </div>
         ) : modulesError ? (
@@ -44,7 +44,7 @@ function CourseHome() {
         ) : modules.length === 0 ? (
           <p className="text-sm text-muted-foreground">No modules in this course.</p>
         ) : (
-          <ModuleList courseId={id} modules={modules} />
+          <ModuleList courseId={id} modules={modules} title="Modules" />
         )}
       </section>
       <aside className="space-y-3">

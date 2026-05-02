@@ -16,6 +16,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const ICON: Record<string, typeof IconBook> = {
@@ -29,16 +30,78 @@ const ICON: Record<string, typeof IconBook> = {
   SubHeader: IconBook,
 };
 
-export function ModuleList({ courseId, modules }: { courseId: number; modules: Module[] }) {
+function storageKey(courseId: number) {
+  return `modules-open-${courseId}`;
+}
+
+function loadOpenIds(courseId: number): Set<number> {
+  try {
+    const raw = localStorage.getItem(storageKey(courseId));
+    if (raw) return new Set(JSON.parse(raw) as number[]);
+  } catch {}
+  return new Set();
+}
+
+function saveOpenIds(courseId: number, ids: Set<number>) {
+  localStorage.setItem(storageKey(courseId), JSON.stringify([...ids]));
+}
+
+export function ModuleList({ courseId, modules, title }: { courseId: number; modules: Module[]; title?: string }) {
+  const [openIds, setOpenIds] = useState<Set<number>>(() => loadOpenIds(courseId));
+
+  function toggle(id: number, next: boolean) {
+    setOpenIds((prev) => {
+      const updated = new Set(prev);
+      if (next) updated.add(id); else updated.delete(id);
+      saveOpenIds(courseId, updated);
+      return updated;
+    });
+  }
+
+  const allOpen = modules.every((m) => openIds.has(m.id));
+
+  function setAll(open: boolean) {
+    const updated = open ? new Set(modules.map((m) => m.id)) : new Set<number>();
+    setOpenIds(updated);
+    saveOpenIds(courseId, updated);
+  }
+
   return (
     <div className="space-y-2">
-      {modules.map((m) => <ModuleRow key={m.id} courseId={courseId} module={m} />)}
+      <div className="flex items-center justify-between">
+        {title ? (
+          <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">{title}</h2>
+        ) : (
+          <span />
+        )}
+        <Button variant="ghost" size="sm" onClick={() => setAll(!allOpen)}>
+          {allOpen ? "Collapse all" : "Expand all"}
+        </Button>
+      </div>
+      {modules.map((m) => (
+        <ModuleRow
+          key={m.id}
+          courseId={courseId}
+          module={m}
+          open={openIds.has(m.id)}
+          onOpenChange={(v) => toggle(m.id, v)}
+        />
+      ))}
     </div>
   );
 }
 
-function ModuleRow({ courseId, module: m }: { courseId: number; module: Module }) {
-  const [open, setOpen] = useState(false);
+function ModuleRow({
+  courseId,
+  module: m,
+  open,
+  onOpenChange,
+}: {
+  courseId: number;
+  module: Module;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const [items, setItems] = useState<ModuleItem[] | null>(null);
 
   useEffect(() => {
@@ -49,7 +112,7 @@ function ModuleRow({ courseId, module: m }: { courseId: number; module: Module }
   }, [open, items, courseId, m.id]);
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="overflow-hidden rounded-md border">
+    <Collapsible open={open} onOpenChange={onOpenChange} className="overflow-hidden rounded-md border">
       <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 bg-muted/40 px-3 py-2.5 text-left hover:bg-muted">
         <div className="flex min-w-0 items-center gap-2">
           <IconChevronRight className={cn("size-4 transition-transform", open && "rotate-90")} />
