@@ -48,7 +48,7 @@ import {
   SidebarMenuSkeleton,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
+} from "@/components/layouts/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { api, type CanvasUser } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
@@ -129,7 +129,7 @@ function AppShell() {
       <SidebarProvider>
         <Sidebar collapsible="icon">
           <SidebarHeader>
-            <div className="flex items-center gap-2 px-2 py-1.5">
+            <div className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:px-0">
               <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-semibold">
                 S
               </div>
@@ -237,7 +237,7 @@ function AppShell() {
         <SidebarInset>
           <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
             <SidebarTrigger />
-            <Separator orientation="vertical" className="mx-1 h-5" />
+            <Separator orientation="vertical" className="mx-1 h-full" />
             <Breadcrumbs />
             <div className="ml-auto flex items-center gap-1">
               <Button

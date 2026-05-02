@@ -2,7 +2,7 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ModuleList } from "@/components/course/module-list";
+import { ModuleList } from "@/components/interfaces/course/module-list";
 import { formatRelativeDate } from "@/lib/format";
 import { courseAnnouncementsQueryOptions, modulesQueryOptions } from "@/lib/queries";
 
