@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   IconBook,
   IconChevronRight,
@@ -9,7 +9,9 @@ import {
   IconMessage,
 } from "@tabler/icons-react";
 import { Link } from "@tanstack/react-router";
-import { canvas, type Module, type ModuleItem } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { type Module, type ModuleItem } from "@/lib/api";
+import { moduleItemsQueryOptions } from "@/lib/queries";
 import {
   Collapsible,
   CollapsibleContent,
@@ -102,14 +104,10 @@ function ModuleRow({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [items, setItems] = useState<ModuleItem[] | null>(null);
-
-  useEffect(() => {
-    if (!open || items !== null) return;
-    let cancelled = false;
-    canvas.moduleItems(courseId, m.id).then((v) => !cancelled && setItems(v)).catch(() => !cancelled && setItems([]));
-    return () => { cancelled = true; };
-  }, [open, items, courseId, m.id]);
+  const { data: items } = useQuery({
+    ...moduleItemsQueryOptions(courseId, m.id),
+    enabled: open,
+  });
 
   return (
     <Collapsible open={open} onOpenChange={onOpenChange} className="overflow-hidden rounded-md border">
@@ -122,7 +120,7 @@ function ModuleRow({
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="divide-y border-t">
-          {items === null ? (
+          {items === undefined ? (
             <div className="space-y-1 p-3">
               {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-6 w-full" />)}
             </div>

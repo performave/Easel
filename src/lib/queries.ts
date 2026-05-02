@@ -4,6 +4,7 @@ import { canvas } from "@/lib/api";
 export const queryKeys = {
   course: (courseId: number) => ["course", courseId] as const,
   modules: (courseId: number) => ["modules", courseId] as const,
+  moduleItems: (courseId: number, moduleId: number) => ["moduleItems", courseId, moduleId] as const,
   announcements: (contextCodes: string[]) => ["announcements", ...contextCodes] as const,
   assignmentGroups: (courseId: number) => ["assignmentGroups", courseId] as const,
   discussions: (courseId: number) => ["discussions", courseId] as const,
@@ -24,6 +25,13 @@ export const modulesQueryOptions = (courseId: number) =>
   queryOptions({
     queryKey: queryKeys.modules(courseId),
     queryFn: () => canvas.modules(courseId),
+    staleTime: 2 * 60 * 1000,
+  });
+
+export const moduleItemsQueryOptions = (courseId: number, moduleId: number) =>
+  queryOptions({
+    queryKey: queryKeys.moduleItems(courseId, moduleId),
+    queryFn: () => canvas.moduleItems(courseId, moduleId),
     staleTime: 2 * 60 * 1000,
   });
 
