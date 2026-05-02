@@ -258,6 +258,15 @@ export const canvas = {
   enrollments: (courseId: number) =>
     api.getAll<Enrollment>(`/api/v1/courses/${courseId}/enrollments?include[]=avatar_url&per_page=100`),
   todo: () => api.getAll<ToDoItem>("/api/v1/users/self/todo"),
+  submitTextEntry: (courseId: number, assignmentId: number, body: string) =>
+    api.request<Submission>({
+      method: "POST",
+      path: `/api/v1/courses/${courseId}/assignments/${assignmentId}/submissions`,
+      form: {
+        "submission[submission_type]": "online_text_entry",
+        "submission[body]": body,
+      },
+    }),
   upcomingEvents: () => api.getAll<CalendarEvent>("/api/v1/users/self/upcoming_events"),
   courseNicknames: () => api.get<Record<string, string>>("/api/v1/users/self/course_nicknames"),
   setCourseNickname: (courseId: number, nickname: string) =>

@@ -7,6 +7,7 @@ export const queryKeys = {
   moduleItems: (courseId: number, moduleId: number) => ["moduleItems", courseId, moduleId] as const,
   announcements: (contextCodes: string[]) => ["announcements", ...contextCodes] as const,
   assignmentGroups: (courseId: number) => ["assignmentGroups", courseId] as const,
+  assignment: (courseId: number, assignmentId: number) => ["assignment", courseId, assignmentId] as const,
   discussions: (courseId: number) => ["discussions", courseId] as const,
   enrollments: (courseId: number) => ["enrollments", courseId] as const,
   rootFolder: (courseId: number) => ["rootFolder", courseId] as const,
@@ -46,6 +47,13 @@ export const assignmentGroupsQueryOptions = (courseId: number) =>
   queryOptions({
     queryKey: queryKeys.assignmentGroups(courseId),
     queryFn: () => canvas.assignmentGroups(courseId),
+    staleTime: 2 * 60 * 1000,
+  });
+
+export const assignmentQueryOptions = (courseId: number, assignmentId: number) =>
+  queryOptions({
+    queryKey: queryKeys.assignment(courseId, assignmentId),
+    queryFn: () => canvas.assignment(courseId, assignmentId),
     staleTime: 2 * 60 * 1000,
   });
 
