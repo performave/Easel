@@ -81,12 +81,14 @@ function AssignmentsPage() {
                         {a.points_possible != null && ` · ${a.points_possible} pts`}
                       </p>
                     </div>
-                    <StatusPill status={status} />
-                    {sub?.score != null && a.points_possible != null && (
-                      <Badge variant="outline" className="shrink-0">
-                        {sub.score}/{a.points_possible}
-                      </Badge>
-                    )}
+                    <div className="flex shrink-0 flex-col items-end gap-0.5">
+                      {sub?.score != null && a.points_possible != null && (
+                        <Badge variant="outline" className="tabular-nums">
+                          {sub.score}/{a.points_possible}
+                        </Badge>
+                      )}
+                      <StatusPill status={status} />
+                    </div>
                   </Link>
                 );
               })
@@ -101,7 +103,7 @@ function AssignmentsPage() {
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, { label: string; cn: string; Icon: typeof IconCheck }> = {
     graded: { label: "Graded", cn: "text-emerald-600", Icon: IconCheck },
-    submitted: { label: "Submitted", cn: "text-blue-600", Icon: IconCheck },
+    submitted: { label: "Submitted", cn: "text-slate-500", Icon: IconCheck },
     missing: { label: "Missing", cn: "text-destructive", Icon: IconAlertCircle },
     late: { label: "Late", cn: "text-amber-600", Icon: IconClock },
     open: { label: "", cn: "text-muted-foreground", Icon: IconClock },
