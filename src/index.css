@@ -121,12 +121,23 @@
   * {
     @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
-    }
   html {
     @apply font-sans;
-   }
+    height: 100%;
+    overscroll-behavior: none;
+  }
+  body {
+    @apply bg-background text-foreground;
+    height: 100%;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #root {
+    height: 100%;
+  }
+  a, button {
+    -webkit-user-drag: none;
+  }
 }
 
 @layer components {
@@ -139,6 +150,8 @@
   .canvas-html {
     color: inherit;
     line-height: 1.6;
+    user-select: text;
+    -webkit-user-select: text;
   }
 
   .canvas-html p,

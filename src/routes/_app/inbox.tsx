@@ -46,7 +46,7 @@ function InboxPage() {
   }, [selectedId]);
 
   return (
-    <div className="grid h-[calc(100vh-3rem)] grid-cols-[16rem_22rem_1fr] divide-x">
+    <div className="grid h-full grid-cols-[16rem_22rem_1fr] divide-x">
       <aside className="space-y-1 p-3">
         {SCOPES.map((s) => (
           <Button
@@ -59,7 +59,7 @@ function InboxPage() {
           </Button>
         ))}
       </aside>
-      <section className="overflow-auto">
+      <section className="overflow-auto overscroll-contain">
         {conversations === null ? (
           <div className="space-y-2 p-3">
             {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
@@ -95,7 +95,7 @@ function InboxPage() {
           </ul>
         )}
       </section>
-      <section className="overflow-auto p-6">
+      <section className="overflow-auto overscroll-contain p-6">
         {detail === null && selectedId != null ? (
           <Skeleton className="h-64 w-full" />
         ) : detail ? (
