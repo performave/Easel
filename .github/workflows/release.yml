@@ -89,18 +89,27 @@ jobs:
           fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
           const cargoToml = fs.readFileSync(cargoTomlPath, "utf8");
-          const packageSection = /(^\[package\][\s\S]*?)(^\[[^\]]+\]|\s*$)/m;
-          if (!packageSection.test(cargoToml)) {
+          const packageHeader = /^\[package\]\s*$/m;
+          const packageStart = cargoToml.search(packageHeader);
+          if (packageStart === -1) {
             throw new Error(`Could not find [package] section in ${cargoTomlPath}`);
           }
 
-          const updatedCargoToml = cargoToml.replace(packageSection, (full, sectionBody, tail) => {
-            const updatedSectionBody = sectionBody.replace(/^version\s*=\s*"[^"]*"\s*$/m, `version = "${version}"`);
-            if (updatedSectionBody === sectionBody) {
-              throw new Error(`Could not find package version in ${cargoTomlPath}`);
-            }
-            return `${updatedSectionBody}${tail}`;
-          });
+          const afterPackageStart = cargoToml.indexOf("\n", packageStart);
+          const searchFrom = afterPackageStart === -1 ? cargoToml.length : afterPackageStart + 1;
+          const nextSectionMatch = /^\[[^\]]+\]\s*$/gm;
+          nextSectionMatch.lastIndex = searchFrom;
+          const nextSection = nextSectionMatch.exec(cargoToml);
+          const packageEnd = nextSection ? nextSection.index : cargoToml.length;
+
+          const packageSectionBody = cargoToml.slice(packageStart, packageEnd);
+          const versionLine = /^version\s*=\s*"[^"]*"\s*$/m;
+          if (!versionLine.test(packageSectionBody)) {
+            throw new Error(`Could not find package version in ${cargoTomlPath}`);
+          }
+          const updatedSectionBody = packageSectionBody.replace(versionLine, `version = "${version}"`);
+
+          const updatedCargoToml = `${cargoToml.slice(0, packageStart)}${updatedSectionBody}${cargoToml.slice(packageEnd)}`;
 
           fs.writeFileSync(cargoTomlPath, updatedCargoToml);
 
