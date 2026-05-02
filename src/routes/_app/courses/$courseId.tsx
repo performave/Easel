@@ -62,7 +62,7 @@ function CourseLayout() {
   })();
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full min-w-0">
       <div className="border-b bg-background">
         <div className="mx-auto max-w-6xl px-6 pb-0 pt-6">
           {course ? (
