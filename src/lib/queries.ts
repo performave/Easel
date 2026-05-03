@@ -1,6 +1,21 @@
 import { queryOptions } from "@tanstack/react-query";
 import { canvas } from "@/lib/api";
 
+export const tabsQueryOptions = (courseId: number) =>
+  queryOptions({
+    queryKey: ["tabs", courseId] as const,
+    queryFn: () => canvas.tabs(courseId),
+    staleTime: 10 * 60 * 1000,
+  });
+
+export const frontPageQueryOptions = (courseId: number) =>
+  queryOptions({
+    queryKey: ["frontPage", courseId] as const,
+    queryFn: () => canvas.frontPage(courseId),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
 export const queryKeys = {
   course: (courseId: number) => ["course", courseId] as const,
   modules: (courseId: number) => ["modules", courseId] as const,

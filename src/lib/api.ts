@@ -193,6 +193,24 @@ export type ToDoItem = {
   ignore_permanently?: string;
 };
 
+export type CanvasTab = {
+  id: string;
+  label: string;
+  type: string;
+  position: number;
+  hidden?: boolean;
+  html_url?: string;
+};
+
+export type CoursePage = {
+  page_id: number;
+  url: string;
+  title: string;
+  body: string | null;
+  published: boolean;
+  updated_at: string | null;
+};
+
 export const api = {
   bootstrap: () => invoke<BootstrapInfo>("bootstrap"),
   beginLogin: (domain: string) => invoke<BootstrapInfo>("begin_login", { domain }),
@@ -257,6 +275,8 @@ export const canvas = {
   conversation: (id: number) => api.get<ConversationDetail>(`/api/v1/conversations/${id}`),
   enrollments: (courseId: number) =>
     api.getAll<Enrollment>(`/api/v1/courses/${courseId}/enrollments?include[]=avatar_url&per_page=100`),
+  tabs: (courseId: number) => api.getAll<CanvasTab>(`/api/v1/courses/${courseId}/tabs`),
+  frontPage: (courseId: number) => api.get<CoursePage>(`/api/v1/courses/${courseId}/front_page`),
   todo: () => api.getAll<ToDoItem>("/api/v1/users/self/todo"),
   submitTextEntry: (courseId: number, assignmentId: number, body: string) =>
     api.request<Submission>({

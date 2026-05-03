@@ -1,5 +1,6 @@
 import DOMPurify from "dompurify";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth";
 
@@ -87,9 +88,19 @@ async function inlineCanvasImages(html: string): Promise<string> {
   return doc.body.innerHTML;
 }
 
-export function CanvasHtml({ html, className }: { html: string | null | undefined; className?: string }) {
+export function CanvasHtml({
+  html,
+  className,
+  onLinkClick,
+}: {
+  html: string | null | undefined;
+  className?: string;
+  /** Return true if the link was handled in-app; return false to fall back to openUrl. */
+  onLinkClick?: (href: string) => boolean | Promise<boolean>;
+}) {
   const domain = useAuthStore((s) => s.domain);
   const [renderHtml, setRenderHtml] = useState("");
+  const divRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,8 +116,35 @@ export function CanvasHtml({ html, className }: { html: string | null | undefine
     };
   }, [domain, html]);
 
+  // Intercept all link clicks inside the rendered HTML.
+  useEffect(() => {
+    const div = divRef.current;
+    if (!div) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest("a");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      void (async () => {
+        if (onLinkClick) {
+          const handled = await onLinkClick(href);
+          if (handled) return;
+        }
+        await openUrl(href);
+      })();
+    };
+
+    div.addEventListener("click", handleClick);
+    return () => div.removeEventListener("click", handleClick);
+  }, [onLinkClick]);
+
   return (
     <div
+      ref={divRef}
       className={className ?? "canvas-html max-w-none"}
       dangerouslySetInnerHTML={{ __html: renderHtml }}
     />

@@ -1,78 +1,272 @@
-import { createFileRoute, useParams } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
+import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ModuleList } from "@/components/interfaces/course/module-list";
+import { CanvasHtml } from "@/lib/html";
 import { formatRelativeDate } from "@/lib/format";
-import { courseAnnouncementsQueryOptions, modulesQueryOptions } from "@/lib/queries";
+import { courseQueryOptions, courseAnnouncementsQueryOptions, modulesQueryOptions, frontPageQueryOptions } from "@/lib/queries";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/stores/auth";
 
 export const Route = createFileRoute("/_app/courses/$courseId/")({
   loader: ({ context, params }) => {
     const id = Number(params.courseId);
     return Promise.all([
+      context.queryClient.prefetchQuery(courseQueryOptions(id)),
       context.queryClient.prefetchQuery(modulesQueryOptions(id)),
       context.queryClient.prefetchQuery(courseAnnouncementsQueryOptions(id)),
+      context.queryClient.prefetchQuery(frontPageQueryOptions(id)),
     ]).catch(() => undefined);
   },
   component: CourseHome,
 });
 
-function CourseHome() {
-  const { courseId } = useParams({ from: "/_app/courses/$courseId/" });
-  const id = Number(courseId);
-  const { data: modulesData, isPending: modulesPending, isError: modulesError } = useQuery(modulesQueryOptions(id));
-  const {
-    data: announcementsData,
-    isPending: announcementsPending,
-    isError: announcementsError,
-  } = useQuery(courseAnnouncementsQueryOptions(id));
+function AnnouncementsSidebar({ courseId }: { courseId: number }) {
+  const { data, isPending, isError } = useQuery(courseAnnouncementsQueryOptions(courseId));
+  const announcements = data ?? [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Recent announcements</CardTitle>
+        <CardDescription>Latest from the course.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {isPending ? (
+          Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
+        ) : isError ? (
+          <p className="text-sm text-muted-foreground">Announcements are restricted for your account.</p>
+        ) : announcements.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No announcements yet.</p>
+        ) : (
+          announcements.slice(0, 5).map((a) => (
+            <div key={a.id} className="rounded-md border p-2">
+              <p className="truncate text-sm font-medium">{a.title}</p>
+              <p className="text-xs text-muted-foreground">
+                {a.posted_at ? formatRelativeDate(a.posted_at) : "—"}
+              </p>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Parse a Canvas absolute URL into { courseId, type, slug } for in-app routing. */
+function parseCanvasUrl(href: string, domain: string | null): { courseId: number; type: string; slug: string } | null {
+  if (!domain || !href) return null;
+  try {
+    const url = new URL(href);
+    const origin = domain.startsWith("http") ? domain : `https://${domain}`;
+    const domainUrl = new URL(origin);
+    if (url.hostname !== domainUrl.hostname) return null;
+    // /courses/{id}/pages/{slug}
+    // /courses/{id}/assignments/{id}
+    // /courses/{id}/files/{id}
+    // /courses/{id}/discussion_topics/{id}
+    // /courses/{id}  (home)
+    const m = url.pathname.match(/^\/courses\/(\d+)(?:\/([^/]+)(?:\/([^/?#]+))?)?/);
+    if (!m) return null;
+    return { courseId: Number(m[1]), type: m[2] ?? "home", slug: m[3] ?? "" };
+  } catch {
+    return null;
+  }
+}
+
+function useCanvasLinkHandler(_courseId: number) {
+  const navigate = useNavigate();
+  const domain = useAuthStore((s) => s.domain);
+  const [pageDialog, setPageDialog] = useState<{ title: string; body: string } | null>(null);
+
+  const onLinkClick = useCallback(async (href: string): Promise<boolean> => {
+    const parsed = parseCanvasUrl(href, domain);
+    if (!parsed) return false;
+
+    const { courseId: linkedCourseId, type, slug } = parsed;
+    const cid = String(linkedCourseId);
+
+    if (type === "home" || type === "") {
+      await navigate({ to: "/courses/$courseId", params: { courseId: cid } });
+      return true;
+    }
+    if (type === "assignments" && slug && slug !== "syllabus") {
+      await navigate({
+        to: "/courses/$courseId/assignments/$assignmentId",
+        params: { courseId: cid, assignmentId: slug },
+      });
+      return true;
+    }
+    if (type === "assignments" && slug === "syllabus") {
+      await navigate({ to: "/courses/$courseId/syllabus", params: { courseId: cid } });
+      return true;
+    }
+    if (type === "grades") {
+      await navigate({ to: "/courses/$courseId/grades", params: { courseId: cid } });
+      return true;
+    }
+    if (type === "modules") {
+      await navigate({ to: "/courses/$courseId/modules", params: { courseId: cid } });
+      return true;
+    }
+    if (type === "discussion_topics" || type === "discussions") {
+      await navigate({ to: "/courses/$courseId/discussions", params: { courseId: cid } });
+      return true;
+    }
+    if (type === "files") {
+      await navigate({ to: "/courses/$courseId/files", params: { courseId: cid } });
+      return true;
+    }
+    if (type === "users" || type === "people") {
+      await navigate({ to: "/courses/$courseId/people", params: { courseId: cid } });
+      return true;
+    }
+    if (type === "pages" && slug) {
+      try {
+        const page = await api.get<{ title: string; body: string | null }>(
+            `/api/v1/courses/${linkedCourseId}/pages/${encodeURIComponent(slug)}`,
+          ).catch(() => null)
+          ?? await api.get<{ title: string; body: string | null }>(
+            `/api/v1/courses/${linkedCourseId}/front_page`,
+          );
+        if (page?.body) {
+          setPageDialog({ title: page.title ?? slug, body: page.body });
+          return true;
+        }
+      } catch {
+        // fall through to browser
+      }
+    }
+    return false;
+  }, [domain, navigate]);
+
+  return { onLinkClick, pageDialog, setPageDialog };
+}
+
+function WikiHomeView({ courseId }: { courseId: number }) {
+  const { data, isPending, isError } = useQuery(frontPageQueryOptions(courseId));
+  const { onLinkClick, pageDialog, setPageDialog } = useCanvasLinkHandler(courseId);
+
+  return (
+    <>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <section className="lg:col-span-2">
+          {isPending ? (
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ) : isError || !data?.body ? (
+            <p className="text-sm text-muted-foreground">No front page content for this course.</p>
+          ) : (
+            <CanvasHtml html={data.body} className="canvas-html text-sm" onLinkClick={onLinkClick} />
+          )}
+        </section>
+        <aside className="space-y-3">
+          <AnnouncementsSidebar courseId={courseId} />
+        </aside>
+      </div>
+
+      <Dialog open={!!pageDialog} onOpenChange={(open) => !open && setPageDialog(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{pageDialog?.title}</DialogTitle>
+          </DialogHeader>
+          {pageDialog && (
+            <CanvasHtml
+              html={pageDialog.body}
+              className="canvas-html text-sm"
+              onLinkClick={onLinkClick}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function ModulesHomeView({ courseId }: { courseId: number }) {
+  const { data: modulesData, isPending, isError } = useQuery(modulesQueryOptions(courseId));
   const modules = modulesData ?? [];
-  const announcements = announcementsData ?? [];
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <section className="lg:col-span-2">
-        {modulesPending ? (
+        {isPending ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Modules</h2>
             </div>
             {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
           </div>
-        ) : modulesError ? (
+        ) : isError ? (
           <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>
         ) : modules.length === 0 ? (
           <p className="text-sm text-muted-foreground">No modules in this course.</p>
         ) : (
-          <ModuleList courseId={id} modules={modules} title="Modules" />
+          <ModuleList courseId={courseId} modules={modules} title="Modules" />
         )}
       </section>
       <aside className="space-y-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Recent announcements</CardTitle>
-            <CardDescription>Latest from the course.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {announcementsPending ? (
-              Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
-            ) : announcementsError ? (
-              <p className="text-sm text-muted-foreground">Announcements are restricted for your account.</p>
-            ) : announcements.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No announcements yet.</p>
-            ) : (
-              announcements.slice(0, 5).map((a) => (
-                <div key={a.id} className="rounded-md border p-2">
-                  <p className="truncate text-sm font-medium">{a.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {a.posted_at ? formatRelativeDate(a.posted_at) : "—"}
-                  </p>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+        <AnnouncementsSidebar courseId={courseId} />
       </aside>
     </div>
   );
+}
+
+function FeedHomeView({ courseId }: { courseId: number }) {
+  const { data, isPending, isError } = useQuery(courseAnnouncementsQueryOptions(courseId));
+  const announcements = data ?? [];
+
+  return (
+    <div className="max-w-2xl space-y-4">
+      <h2 className="text-lg font-semibold">Recent Announcements</h2>
+      {isPending ? (
+        Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
+      ) : isError ? (
+        <p className="text-sm text-muted-foreground">Announcements are restricted for your account.</p>
+      ) : announcements.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No announcements yet.</p>
+      ) : (
+        announcements.map((a) => (
+          <Card key={a.id}>
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                {a.author?.avatar_image_url && (
+                  <img
+                    src={a.author.avatar_image_url}
+                    alt={a.author.display_name ?? ""}
+                    className="h-9 w-9 rounded-full shrink-0 object-cover"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{a.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {a.posted_at ? formatRelativeDate(a.posted_at) : "—"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      )}
+    </div>
+  );
+}
+
+function CourseHome() {
+  const { courseId } = useParams({ from: "/_app/courses/$courseId/" });
+  const id = Number(courseId);
+  const { data: course } = useQuery(courseQueryOptions(id));
+
+  const defaultView = course?.default_view ?? "modules";
+
+  if (defaultView === "wiki") return <WikiHomeView courseId={id} />;
+  if (defaultView === "feed") return <FeedHomeView courseId={id} />;
+  return <ModulesHomeView courseId={id} />;
 }

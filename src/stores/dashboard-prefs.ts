@@ -11,6 +11,7 @@ type DashboardPrefsState = {
   courseNicknames: Record<number, string>;
   courseThemes: Record<number, CourseTheme>;
   dismissedTodoKeys: Record<string, { dismissedAt: string }>;
+  hiddenCourseTabs: Record<number, string[]>;
   setCourseOrder: (order: number[]) => void;
   setCourseNickname: (courseId: number, nickname: string) => void;
   clearCourseNickname: (courseId: number) => void;
@@ -18,6 +19,7 @@ type DashboardPrefsState = {
   clearCourseBannerImage: (courseId: number) => void;
   dismissTodo: (key: string) => void;
   undismissTodo: (key: string) => void;
+  toggleCourseTab: (courseId: number, tabId: string) => void;
   hydrateRemote: (payload: {
     order?: number[];
     nicknames?: Record<number, string>;
@@ -32,6 +34,7 @@ export const useDashboardPrefsStore = create<DashboardPrefsState>()(
       courseNicknames: {},
       courseThemes: {},
       dismissedTodoKeys: {},
+      hiddenCourseTabs: {},
       setCourseOrder: (courseOrder) => set({ courseOrder }),
       setCourseNickname: (courseId, nickname) =>
         set((state) => ({
@@ -75,6 +78,14 @@ export const useDashboardPrefsStore = create<DashboardPrefsState>()(
           const next = { ...state.dismissedTodoKeys };
           delete next[key];
           return { dismissedTodoKeys: next };
+        }),
+      toggleCourseTab: (courseId, tabId) =>
+        set((state) => {
+          const hidden = state.hiddenCourseTabs[courseId] ?? [];
+          const next = hidden.includes(tabId)
+            ? hidden.filter((t) => t !== tabId)
+            : [...hidden, tabId];
+          return { hiddenCourseTabs: { ...state.hiddenCourseTabs, [courseId]: next } };
         }),
       hydrateRemote: ({ order, nicknames, colors }) =>
         set((state) => ({
