@@ -9,8 +9,7 @@ import { formatRelativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/courses/$courseId/assignments/")({
-  loader: ({ context, params }) =>
-    context.queryClient.prefetchQuery(assignmentGroupsQueryOptions(Number(params.courseId))),
+  loader: ({ context, params }) => { void context.queryClient.prefetchQuery(assignmentGroupsQueryOptions(Number(params.courseId))); },
   component: AssignmentsPage,
 });
 

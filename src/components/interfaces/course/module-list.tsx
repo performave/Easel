@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { Menu, MenuItem } from "@tauri-apps/api/menu";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -149,13 +149,27 @@ function formatBytes(bytes: number): string {
 
 function ItemRow({ courseId, item }: { courseId: number; item: ModuleItem }) {
   const [dlState, setDlState] = useState<DownloadState>(null);
+  const [fakeProgress, setFakeProgress] = useState(0);
+
+  const isDownloading = !!dlState;
+  const hasTotal = dlState?.total != null;
+
+  useEffect(() => {
+    if (!isDownloading) {
+      setFakeProgress(0);
+      return;
+    }
+    if (hasTotal) return;
+    const id = setInterval(() => {
+      setFakeProgress((p) => Math.min(p + 1, 20));
+    }, 200);
+    return () => clearInterval(id);
+  }, [isDownloading, hasTotal]);
 
   if (item.type === "SubHeader") {
     return <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{item.title}</p>;
   }
   const Icon = ICON[item.type] ?? IconBook;
-  const indent = Math.min(item.indent ?? 0, 5);
-  const style = { paddingLeft: `${0.75 + indent * 0.75}rem` };
   const rowClass = cn("flex items-center gap-2 px-3 py-2 hover:bg-accent");
 
   if (item.type === "Assignment" && item.content_id) {
@@ -164,7 +178,6 @@ function ItemRow({ courseId, item }: { courseId: number; item: ModuleItem }) {
         to="/courses/$courseId/assignments/$assignmentId"
         params={{ courseId: String(courseId), assignmentId: String(item.content_id) }}
         className={rowClass}
-        style={style}
       >
         <Icon className="size-4 shrink-0 text-muted-foreground" />
         <span className="truncate text-sm">{item.title}</span>
@@ -176,58 +189,60 @@ function ItemRow({ courseId, item }: { courseId: number; item: ModuleItem }) {
   }
 
   if (item.type === "File" && item.content_id) {
-    const pct = dlState?.total ? (dlState.downloaded / dlState.total) * 100 : null;
+    const realPct = dlState?.total ? (dlState.downloaded / dlState.total) * 100 : null;
+    const displayPct = realPct ?? fakeProgress;
+
+    function startDownload() {
+      if (dlState) return;
+      const fileId = item.content_id!;
+      setDlState({ downloaded: 0, total: null });
+      const unlistenPromise = listen<{ file_id: number; downloaded: number; total: number | null }>(
+        "file-download-progress",
+        (event) => {
+          if (event.payload.file_id !== fileId) return;
+          setDlState({ downloaded: event.payload.downloaded, total: event.payload.total });
+        },
+      );
+      api.downloadAndOpenFile(fileId).finally(() => {
+        unlistenPromise.then((unlisten) => unlisten());
+        setDlState(null);
+      });
+    }
+
     return (
-      <div className="relative">
-        <button
-          className={cn(rowClass, "w-full text-left", dlState && "pointer-events-none opacity-70")}
-          style={style}
-          disabled={!!dlState}
-          onClick={() => {
-            const fileId = item.content_id!;
-            setDlState({ downloaded: 0, total: null });
-            const unlistenPromise = listen<{ file_id: number; downloaded: number; total: number | null }>(
-              "file-download-progress",
-              (event) => {
-                if (event.payload.file_id !== fileId) return;
-                setDlState({ downloaded: event.payload.downloaded, total: event.payload.total });
-              },
-            );
-            api.downloadAndOpenFile(fileId).finally(() => {
-              unlistenPromise.then((unlisten) => unlisten());
-              setDlState(null);
-            });
-          }}
-          onContextMenu={async (e) => {
-            e.preventDefault();
-            const url = item.html_url;
-            if (!url) return;
-            const menu = await Menu.new({
-              items: [
-                await MenuItem.new({ text: "Open in browser", action: () => openUrl(url) }),
-              ],
-            });
-            await menu.popup();
-          }}
-        >
-          <Icon className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate text-sm">{item.title}</span>
-          {dlState ? (
-            <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-              {formatBytes(dlState.downloaded)}
-              {dlState.total ? ` / ${formatBytes(dlState.total)}` : ""}
-            </span>
-          ) : item.completion_requirement?.completed ? (
-            <span className="ml-auto text-xs text-emerald-600">Done</span>
-          ) : null}
-        </button>
+      <button
+        className={cn(rowClass, "relative w-full text-left", dlState && "pointer-events-none opacity-70")}
+        disabled={!!dlState}
+        onClick={startDownload}
+        onContextMenu={async (e) => {
+          e.preventDefault();
+          const menuItems: Promise<MenuItem>[] = [
+            MenuItem.new({ text: "Download…", action: () => api.downloadFileTo(item.content_id!) }),
+          ];
+          if (item.html_url) {
+            menuItems.push(MenuItem.new({ text: "Open in browser", action: () => openUrl(item.html_url!) }));
+          }
+          const menu = await Menu.new({ items: await Promise.all(menuItems) });
+          await menu.popup();
+        }}
+      >
+        <Icon className="size-4 shrink-0 text-muted-foreground" />
+        <span className="truncate text-sm">{item.title}</span>
+        {dlState ? (
+          <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+            {formatBytes(dlState.downloaded)}
+            {dlState.total ? ` / ${formatBytes(dlState.total)}` : ""}
+          </span>
+        ) : item.completion_requirement?.completed ? (
+          <span className="ml-auto text-xs text-emerald-600">Done</span>
+        ) : null}
         {dlState && (
           <Progress
-            value={pct ?? 0}
+            value={displayPct}
             className="absolute bottom-0 left-0 right-0 h-0.5 rounded-none"
           />
         )}
-      </div>
+      </button>
     );
   }
 
@@ -237,7 +252,6 @@ function ItemRow({ courseId, item }: { courseId: number; item: ModuleItem }) {
       target="_blank"
       rel="noreferrer"
       className={rowClass}
-      style={style}
     >
       <Icon className="size-4 shrink-0 text-muted-foreground" />
       <span className="truncate text-sm">{item.title}</span>

@@ -7,8 +7,7 @@ import { enrollmentsQueryOptions } from "@/lib/queries";
 import type { Enrollment } from "@/lib/api";
 
 export const Route = createFileRoute("/_app/courses/$courseId/people")({
-  loader: ({ context, params }) =>
-    context.queryClient.prefetchQuery(enrollmentsQueryOptions(Number(params.courseId))),
+  loader: ({ context, params }) => { void context.queryClient.prefetchQuery(enrollmentsQueryOptions(Number(params.courseId))); },
   component: PeoplePage,
 });
 

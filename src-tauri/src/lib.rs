@@ -21,6 +21,7 @@ pub fn run() {
     };
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -43,6 +44,7 @@ pub fn run() {
             commands::canvas_request,
             commands::canvas_asset_data_url,
             commands::download_and_open_file,
+            commands::download_file_to,
             commands::logout,
         ])
         .run(tauri::generate_context!())

@@ -9,10 +9,7 @@ import type { Folder } from "@/lib/api";
 import { formatBytes, formatShortDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/courses/$courseId/files")({
-  loader: ({ context, params }) => {
-    const courseId = Number(params.courseId);
-    return context.queryClient.prefetchQuery(rootFolderQueryOptions(courseId)).catch(() => undefined);
-  },
+  loader: ({ context, params }) => { void context.queryClient.prefetchQuery(rootFolderQueryOptions(Number(params.courseId))); },
   component: FilesPage,
 });
 

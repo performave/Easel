@@ -40,6 +40,7 @@ export type Module = {
   unlock_at: string | null;
   items_count: number;
   items_url: string;
+  items?: ModuleItem[];
 };
 
 export type ModuleItem = {
@@ -224,6 +225,8 @@ export const api = {
     invoke<string>("canvas_asset_data_url", { pathOrUrl }),
   downloadAndOpenFile: (fileId: number) =>
     invoke<void>("download_and_open_file", { fileId }),
+  downloadFileTo: (fileId: number) =>
+    invoke<void>("download_file_to", { fileId }),
 };
 
 export const canvas = {

@@ -2,8 +2,9 @@ import { useCallback, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { IconArrowLeft } from "@tabler/icons-react";
 import { ModuleList } from "@/components/interfaces/course/module-list";
 import { CanvasHtml } from "@/lib/html";
 import { formatRelativeDate } from "@/lib/format";
@@ -14,12 +15,10 @@ import { useAuthStore } from "@/stores/auth";
 export const Route = createFileRoute("/_app/courses/$courseId/")({
   loader: ({ context, params }) => {
     const id = Number(params.courseId);
-    return Promise.all([
-      context.queryClient.prefetchQuery(courseQueryOptions(id)),
-      context.queryClient.prefetchQuery(modulesQueryOptions(id)),
-      context.queryClient.prefetchQuery(courseAnnouncementsQueryOptions(id)),
-      context.queryClient.prefetchQuery(frontPageQueryOptions(id)),
-    ]).catch(() => undefined);
+    void context.queryClient.prefetchQuery(courseQueryOptions(id));
+    void context.queryClient.prefetchQuery(modulesQueryOptions(id));
+    void context.queryClient.prefetchQuery(courseAnnouncementsQueryOptions(id));
+    void context.queryClient.prefetchQuery(frontPageQueryOptions(id));
   },
   component: CourseHome,
 });
@@ -77,10 +76,12 @@ function parseCanvasUrl(href: string, domain: string | null): { courseId: number
   }
 }
 
-function useCanvasLinkHandler(_courseId: number) {
+function useCanvasLinkHandler(
+  _courseId: number,
+  setInlinePage: (page: { title: string; body: string } | null) => void,
+) {
   const navigate = useNavigate();
   const domain = useAuthStore((s) => s.domain);
-  const [pageDialog, setPageDialog] = useState<{ title: string; body: string } | null>(null);
 
   const onLinkClick = useCallback(async (href: string): Promise<boolean> => {
     const parsed = parseCanvasUrl(href, domain);
@@ -133,7 +134,7 @@ function useCanvasLinkHandler(_courseId: number) {
             `/api/v1/courses/${linkedCourseId}/front_page`,
           );
         if (page?.body) {
-          setPageDialog({ title: page.title ?? slug, body: page.body });
+          setInlinePage({ title: page.title ?? slug, body: page.body });
           return true;
         }
       } catch {
@@ -141,52 +142,54 @@ function useCanvasLinkHandler(_courseId: number) {
       }
     }
     return false;
-  }, [domain, navigate]);
+  }, [domain, navigate, setInlinePage]);
 
-  return { onLinkClick, pageDialog, setPageDialog };
+  return { onLinkClick };
 }
 
 function WikiHomeView({ courseId }: { courseId: number }) {
   const { data, isPending, isError } = useQuery(frontPageQueryOptions(courseId));
-  const { onLinkClick, pageDialog, setPageDialog } = useCanvasLinkHandler(courseId);
+  const [inlinePage, setInlinePage] = useState<{ title: string; body: string } | null>(null);
+  const { onLinkClick } = useCanvasLinkHandler(courseId, setInlinePage);
 
-  return (
-    <>
+  if (inlinePage) {
+    return (
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="lg:col-span-2">
-          {isPending ? (
-            <div className="space-y-3">
-              <Skeleton className="h-6 w-1/2" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </div>
-          ) : isError || !data?.body ? (
-            <p className="text-sm text-muted-foreground">No front page content for this course.</p>
-          ) : (
-            <CanvasHtml html={data.body} className="canvas-html text-sm" onLinkClick={onLinkClick} />
-          )}
+        <section className="lg:col-span-2 space-y-4">
+          <Button variant="ghost" size="sm" onClick={() => setInlinePage(null)} className="-ml-2">
+            <IconArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h2 className="text-base font-semibold">{inlinePage.title}</h2>
+          <CanvasHtml html={inlinePage.body} className="canvas-html text-sm" onLinkClick={onLinkClick} />
         </section>
         <aside className="space-y-3">
           <AnnouncementsSidebar courseId={courseId} />
         </aside>
       </div>
+    );
+  }
 
-      <Dialog open={!!pageDialog} onOpenChange={(open) => !open && setPageDialog(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{pageDialog?.title}</DialogTitle>
-          </DialogHeader>
-          {pageDialog && (
-            <CanvasHtml
-              html={pageDialog.body}
-              className="canvas-html text-sm"
-              onLinkClick={onLinkClick}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+  return (
+    <div className="grid gap-6 lg:grid-cols-3">
+      <section className="lg:col-span-2">
+        {isPending ? (
+          <div className="space-y-3">
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        ) : isError || !data?.body ? (
+          <p className="text-sm text-muted-foreground">No front page content for this course.</p>
+        ) : (
+          <CanvasHtml html={data.body} className="canvas-html text-sm" onLinkClick={onLinkClick} />
+        )}
+      </section>
+      <aside className="space-y-3">
+        <AnnouncementsSidebar courseId={courseId} />
+      </aside>
+    </div>
   );
 }
 

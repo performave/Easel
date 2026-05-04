@@ -5,7 +5,7 @@ import { ModuleList } from "@/components/interfaces/course/module-list";
 import { modulesQueryOptions } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/courses/$courseId/modules")({
-  loader: ({ context, params }) => context.queryClient.prefetchQuery(modulesQueryOptions(Number(params.courseId))),
+  loader: ({ context, params }) => { void context.queryClient.prefetchQuery(modulesQueryOptions(Number(params.courseId))); },
   component: ModulesPage,
 });
 

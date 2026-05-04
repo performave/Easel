@@ -4,16 +4,16 @@ import { useQuery } from "@tanstack/react-query";
 import { IconAdjustmentsHorizontal } from "@tabler/icons-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { courseQueryOptions, modulesQueryOptions, assignmentGroupsQueryOptions, discussionsQueryOptions, enrollmentsQueryOptions, rootFolderQueryOptions, tabsQueryOptions } from "@/lib/queries";
 import { useCoursesStore } from "@/stores/courses";
 import { useDashboardPrefsStore } from "@/stores/dashboard-prefs";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/courses/$courseId")({
-  loader: async ({ context, params }) => {
+  loader: ({ context, params }) => {
     const id = Number(params.courseId);
-    await context.queryClient.ensureQueryData(courseQueryOptions(id));
+    void context.queryClient.prefetchQuery(courseQueryOptions(id));
     void context.queryClient.prefetchQuery(modulesQueryOptions(id));
     void context.queryClient.prefetchQuery(assignmentGroupsQueryOptions(id));
     void context.queryClient.prefetchQuery(discussionsQueryOptions(id));
@@ -49,7 +49,6 @@ function CourseLayout() {
   const hiddenCourseTabs = useDashboardPrefsStore((s) => s.hiddenCourseTabs);
   const toggleCourseTab = useDashboardPrefsStore((s) => s.toggleCourseTab);
   const queryClient = Route.useRouteContext({ select: (ctx) => ctx.queryClient });
-  const [customizeOpen, setCustomizeOpen] = useState(false);
 
   // Collapse the title section when the user scrolls down so only the tab bar
   // remains visible — keeping the tab bar outside the scroll container avoids
@@ -153,15 +152,45 @@ function CourseLayout() {
             )}
           </nav>
           {canvasTabs && allSupportedTabs.length > 1 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
-              onClick={() => setCustomizeOpen(true)}
-              title="Customize tabs"
-            >
-              <IconAdjustmentsHorizontal className="h-4 w-4" />
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                  title="Customize tabs"
+                >
+                  <IconAdjustmentsHorizontal className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="end">
+                <p className="text-xs font-semibold text-muted-foreground px-3 py-1.5">Customize tabs</p>
+                <div className="space-y-0.5">
+                  {allSupportedTabs.map((tab) => {
+                    const isHome = tab.id === "home";
+                    const isHidden = !isHome && userHidden.includes(tab.id);
+                    return (
+                      <label
+                        key={tab.id}
+                        className={cn(
+                          "flex items-center gap-3 rounded-md px-3 py-2 cursor-pointer select-none",
+                          isHome ? "opacity-50 cursor-not-allowed" : "hover:bg-muted",
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!isHidden}
+                          disabled={isHome}
+                          onChange={() => !isHome && toggleCourseTab(id, tab.id)}
+                          className="accent-primary"
+                        />
+                        <span className="text-sm font-medium">{tab.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
           )}
         </div>
       </div>
@@ -176,38 +205,7 @@ function CourseLayout() {
         </div>
       </div>
 
-      <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Customize tabs</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">Show or hide tabs for this course.</p>
-          <div className="space-y-1 mt-2">
-            {allSupportedTabs.map((tab) => {
-              const isHome = tab.id === "home";
-              const isHidden = !isHome && userHidden.includes(tab.id);
-              return (
-                <label
-                  key={tab.id}
-                  className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 cursor-pointer select-none",
-                    isHome ? "opacity-50 cursor-not-allowed" : "hover:bg-muted",
-                  )}
-                >
-                  <input
-                    type="checkbox"
-                    checked={!isHidden}
-                    disabled={isHome}
-                    onChange={() => !isHome && toggleCourseTab(id, tab.id)}
-                    className="accent-primary"
-                  />
-                  <span className="text-sm font-medium">{tab.label}</span>
-                </label>
-              );
-            })}
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }

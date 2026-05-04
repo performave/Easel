@@ -2,6 +2,7 @@ use futures_util::StreamExt;
 use serde::Serialize;
 use std::collections::HashMap;
 use tauri::{AppHandle, Emitter, State};
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 use url::Url;
 
@@ -258,6 +259,73 @@ pub async fn download_and_open_file(
         .open_path(dest.to_string_lossy().as_ref(), None::<&str>)
         .map_err(|e| CommandError { message: e.to_string() })?;
 
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn download_file_to(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    file_id: u64,
+) -> Result<(), CommandError> {
+    let path = format!("/api/v1/files/{}", file_id);
+    let guard = state.session.read().await;
+    let session = guard.as_ref().ok_or_else(|| CommandError {
+        message: "not authenticated".into(),
+    })?;
+
+    let file_info = state.http.get_json::<serde_json::Value>(session, &path).await?;
+    let download_url = file_info["url"].as_str().ok_or_else(|| CommandError {
+        message: "missing download URL in file metadata".into(),
+    })?.to_string();
+    let filename = file_info["filename"]
+        .as_str()
+        .unwrap_or("download")
+        .to_string();
+    drop(guard);
+
+    let safe_name = std::path::Path::new(&filename)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("download")
+        .to_string();
+
+    let (tx, rx) = tokio::sync::oneshot::channel::<Option<std::path::PathBuf>>();
+    let tx = std::sync::Mutex::new(Some(tx));
+    app.dialog()
+        .file()
+        .set_file_name(&safe_name)
+        .save_file(move |path| {
+            if let Some(sender) = tx.lock().unwrap().take() {
+                let _ = sender.send(path.map(|p| p.as_path().unwrap().to_path_buf()));
+            }
+        });
+
+    let dest = rx.await.map_err(|_| CommandError { message: "dialog closed".into() })?;
+    let dest = match dest {
+        Some(p) => p,
+        None => return Ok(()),
+    };
+
+    let resp = state.http.client.get(&download_url).send().await?;
+    let total = resp.content_length();
+    let mut stream = resp.bytes_stream();
+    let mut file_data: Vec<u8> = Vec::new();
+    if let Some(t) = total { file_data.reserve(t as usize); }
+    let mut downloaded = 0u64;
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        downloaded += chunk.len() as u64;
+        file_data.extend_from_slice(&chunk);
+        let _ = app.emit("file-download-progress", DownloadProgress {
+            file_id,
+            downloaded,
+            total,
+        });
+    }
+
+    std::fs::write(&dest, &file_data)?;
     Ok(())
 }
 

@@ -7,8 +7,7 @@ import { discussionsQueryOptions } from "@/lib/queries";
 import { formatRelative } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/courses/$courseId/discussions")({
-  loader: ({ context, params }) =>
-    context.queryClient.prefetchQuery(discussionsQueryOptions(Number(params.courseId))),
+  loader: ({ context, params }) => { void context.queryClient.prefetchQuery(discussionsQueryOptions(Number(params.courseId))); },
   component: DiscussionsPage,
 });
 
