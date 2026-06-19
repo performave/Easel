@@ -134,7 +134,7 @@ function AssignmentsPage() {
     )
 }
 
-function StatusPill({ status }: { status: string }) {
+const StatusPill = ({ status }: { status: string }) => {
     const map: Record<
         string,
         { label: string; cn: string; Icon: typeof IconCheck }

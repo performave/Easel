@@ -395,7 +395,7 @@ function AppShell() {
     )
 }
 
-function Breadcrumbs() {
+const Breadcrumbs = () => {
     const location = useLocation()
     const { courses } = useCourses()
     const courseNicknames = useDashboardPrefsStore(s => s.courseNicknames)
@@ -443,6 +443,6 @@ function Breadcrumbs() {
     )
 }
 
-function titleCase(s: string) {
+const titleCase = (s: string) => {
     return s.charAt(0).toUpperCase() + s.slice(1)
 }

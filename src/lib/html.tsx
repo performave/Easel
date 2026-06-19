@@ -73,19 +73,19 @@ const SANITIZE_CONFIG = {
     ALLOW_DATA_ATTR: false,
 }
 
-export function sanitizeHtml(html: string | null | undefined): string {
+export const sanitizeHtml = (html: string | null | undefined): string => {
     if (!html) return ''
     return DOMPurify.sanitize(html, SANITIZE_CONFIG) as unknown as string
 }
 
-function toCanvasOrigin(domain: string | null): string | null {
+const toCanvasOrigin = (domain: string | null): string | null => {
     if (!domain) return null
     const trimmed = domain.trim()
     if (!trimmed) return null
     return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
 }
 
-function absolutizeCanvasUrls(html: string, domain: string | null): string {
+const absolutizeCanvasUrls = (html: string, domain: string | null): string => {
     const baseOrigin = toCanvasOrigin(domain)
     if (!html || !baseOrigin || typeof window === 'undefined') return html
 
@@ -117,7 +117,7 @@ function absolutizeCanvasUrls(html: string, domain: string | null): string {
     return doc.body.innerHTML
 }
 
-async function inlineCanvasImages(html: string): Promise<string> {
+const inlineCanvasImages = async (html: string): Promise<string> => {
     if (!html || typeof window === 'undefined') return html
 
     const parser = new window.DOMParser()
@@ -147,7 +147,7 @@ async function inlineCanvasImages(html: string): Promise<string> {
     return doc.body.innerHTML
 }
 
-export function CanvasHtml({
+export const CanvasHtml = ({
     html,
     className,
     onLinkClick,
@@ -156,7 +156,7 @@ export function CanvasHtml({
     className?: string
     /** Return true if the link was handled in-app; return false to fall back to openUrl. */
     onLinkClick?: (href: string) => boolean | Promise<boolean>
-}) {
+}) => {
     const domain = useAuthStore(s => s.domain)
     const [renderHtml, setRenderHtml] = useState('')
     const divRef = useRef<HTMLDivElement>(null)

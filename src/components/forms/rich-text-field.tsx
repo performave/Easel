@@ -17,13 +17,13 @@ interface RichTextFieldProps {
     fieldProps?: HTMLAttributes<HTMLDivElement>
 }
 
-export function RichTextField({
+export const RichTextField = ({
     name,
     label,
     description,
     placeholder,
     fieldProps,
-}: RichTextFieldProps) {
+}: RichTextFieldProps) => {
     return (
         <Controller
             name={name}

@@ -42,7 +42,7 @@ export const Route = createFileRoute('/_app/courses/$courseId/')({
     component: CourseHome,
 })
 
-function AnnouncementsSidebar({ courseId }: { courseId: number }) {
+const AnnouncementsSidebar = ({ courseId }: { courseId: number }) => {
     const { data, isPending, isError } = useQuery(
         courseAnnouncementsQueryOptions(courseId)
     )
@@ -83,10 +83,10 @@ function AnnouncementsSidebar({ courseId }: { courseId: number }) {
 }
 
 /** Parse a Canvas absolute URL into { courseId, type, slug } for in-app routing. */
-function parseCanvasUrl(
+const parseCanvasUrl = (
     href: string,
     domain: string | null
-): { courseId: number; type: string; slug: string } | null {
+): { courseId: number; type: string; slug: string } | null => {
     if (!domain || !href) return null
     try {
         const url = new URL(href)
@@ -112,10 +112,10 @@ function parseCanvasUrl(
     }
 }
 
-function useCanvasLinkHandler(
+const useCanvasLinkHandler = (
     _courseId: number,
     setInlinePage: (page: { title: string; body: string } | null) => void
-) {
+) => {
     const navigate = useNavigate()
     const domain = useAuthStore(s => s.domain)
 
@@ -216,7 +216,7 @@ function useCanvasLinkHandler(
     return { onLinkClick }
 }
 
-function WikiHomeView({ courseId }: { courseId: number }) {
+const WikiHomeView = ({ courseId }: { courseId: number }) => {
     const { data, isPending, isError } = useQuery(
         frontPageQueryOptions(courseId)
     )
@@ -284,7 +284,7 @@ function WikiHomeView({ courseId }: { courseId: number }) {
     )
 }
 
-function ModulesHomeView({ courseId }: { courseId: number }) {
+const ModulesHomeView = ({ courseId }: { courseId: number }) => {
     const {
         data: modulesData,
         isPending,
@@ -325,7 +325,7 @@ function ModulesHomeView({ courseId }: { courseId: number }) {
     )
 }
 
-function FeedHomeView({ courseId }: { courseId: number }) {
+const FeedHomeView = ({ courseId }: { courseId: number }) => {
     const { data, isPending, isError } = useQuery(
         courseAnnouncementsQueryOptions(courseId)
     )

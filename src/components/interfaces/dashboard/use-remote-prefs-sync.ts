@@ -20,7 +20,7 @@ import { useDashboardPrefsStore } from '@/stores/dashboard-prefs'
  * and merges them into the local store. Returns the current user id, which
  * the course grid needs to sync reordering back to Canvas.
  */
-export function useRemotePrefsSync(): number | null {
+export const useRemotePrefsSync = (): number | null => {
     const hydrateRemote = useDashboardPrefsStore(s => s.hydrateRemote)
 
     const { data: user } = useQuery(currentUserQueryOptions())

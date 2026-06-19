@@ -9,11 +9,11 @@ import {
 } from '@/components/ui/empty'
 
 /** Shared fallback shown when a Canvas tab/section is restricted for the account. */
-function RestrictedTab({
+const RestrictedTab = ({
     message = 'This tab is restricted for your account.',
 }: {
     message?: string
-}) {
+}) => {
     return (
         <Empty className='border-none'>
             <EmptyHeader>

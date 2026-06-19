@@ -54,13 +54,13 @@ function PeoplePage() {
     )
 }
 
-function PeopleSection({
+const PeopleSection = ({
     title,
     enrollments,
 }: {
     title: string
     enrollments: Enrollment[]
-}) {
+}) => {
     if (enrollments.length === 0) return null
     return (
         <section>

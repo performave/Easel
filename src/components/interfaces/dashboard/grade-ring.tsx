@@ -1,13 +1,7 @@
 import { cn } from '@/lib/utils'
 
-
-
-
-
-
-
 /** Compact circular progress ring showing a percentage (0–100). */
-export function GradeRing({
+export const GradeRing = ({
     value,
     size = 44,
     strokeWidth = 4,
@@ -17,7 +11,7 @@ export function GradeRing({
     size?: number
     strokeWidth?: number
     className?: string
-}) {
+}) => {
     const clamped = Math.max(0, Math.min(100, value))
     const radius = (size - strokeWidth) / 2
     const circumference = 2 * Math.PI * radius

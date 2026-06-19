@@ -29,7 +29,7 @@ declare module '@tanstack/react-router' {
     }
 }
 
-async function installUpdateIfAvailable() {
+const installUpdateIfAvailable = async () => {
     if (!('__TAURI_INTERNALS__' in window)) {
         return
     }

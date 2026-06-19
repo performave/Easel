@@ -23,13 +23,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 
-export function CourseCustomizeButton({
+export const CourseCustomizeButton = ({
     course,
     userId,
 }: {
     course: Course
     userId: number | null
-}) {
+}) => {
     const setNickname = useDashboardPrefsStore(s => s.setCourseNickname)
     const clearNickname = useDashboardPrefsStore(s => s.clearCourseNickname)
     const setCourseTheme = useDashboardPrefsStore(s => s.setCourseTheme)

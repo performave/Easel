@@ -124,11 +124,11 @@ export const useDashboardPrefsStore = create<DashboardPrefsState>()(
     )
 )
 
-export function todoItemKey(input: {
+export const todoItemKey = (input: {
     courseId?: number
     assignmentId?: number
     htmlUrl?: string
-}) {
+}) => {
     if (input.assignmentId != null && input.courseId != null) {
         return `assignment:${input.courseId}:${input.assignmentId}`
     }

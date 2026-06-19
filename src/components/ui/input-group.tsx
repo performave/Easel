@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
-function InputGroup({ className, ...props }: React.ComponentProps<'div'>) {
+const InputGroup = ({ className, ...props }: React.ComponentProps<'div'>) => {
     return (
         <div
             data-slot='input-group'
@@ -44,11 +44,12 @@ const inputGroupAddonVariants = cva(
     }
 )
 
-function InputGroupAddon({
+const InputGroupAddon = ({
     className,
     align = 'inline-start',
     ...props
-}: React.ComponentProps<'div'> & VariantProps<typeof inputGroupAddonVariants>) {
+}: React.ComponentProps<'div'> &
+    VariantProps<typeof inputGroupAddonVariants>) => {
     return (
         <div
             role='group'
@@ -84,7 +85,7 @@ const inputGroupButtonVariants = cva(
     }
 )
 
-function InputGroupButton({
+const InputGroupButton = ({
     className,
     type = 'button',
     variant = 'ghost',
@@ -93,7 +94,7 @@ function InputGroupButton({
 }: Omit<React.ComponentProps<typeof Button>, 'size' | 'type'> &
     VariantProps<typeof inputGroupButtonVariants> & {
         type?: 'button' | 'submit' | 'reset'
-    }) {
+    }) => {
     return (
         <Button
             type={type}
@@ -105,7 +106,10 @@ function InputGroupButton({
     )
 }
 
-function InputGroupText({ className, ...props }: React.ComponentProps<'span'>) {
+const InputGroupText = ({
+    className,
+    ...props
+}: React.ComponentProps<'span'>) => {
     return (
         <span
             className={cn(
@@ -117,10 +121,10 @@ function InputGroupText({ className, ...props }: React.ComponentProps<'span'>) {
     )
 }
 
-function InputGroupInput({
+const InputGroupInput = ({
     className,
     ...props
-}: React.ComponentProps<'input'>) {
+}: React.ComponentProps<'input'>) => {
     return (
         <Input
             data-slot='input-group-control'
@@ -133,10 +137,10 @@ function InputGroupInput({
     )
 }
 
-function InputGroupTextarea({
+const InputGroupTextarea = ({
     className,
     ...props
-}: React.ComponentProps<'textarea'>) {
+}: React.ComponentProps<'textarea'>) => {
     return (
         <Textarea
             data-slot='input-group-control'

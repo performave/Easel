@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/collapsible'
 import { SkeletonList } from '@/components/ui/skeleton-list'
 
-export function TodoCard() {
+export const TodoCard = () => {
     const todoQuery = useQuery(todoQueryOptions())
     const todo = todoQuery.data
     const dismissedTodoKeys = useDashboardPrefsStore(s => s.dismissedTodoKeys)

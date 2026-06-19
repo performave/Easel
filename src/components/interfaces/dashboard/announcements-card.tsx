@@ -15,13 +15,13 @@ import {
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export function AnnouncementsCard({
+export const AnnouncementsCard = ({
     courses,
     coursesPending,
 }: {
     courses: Course[]
     coursesPending: boolean
-}) {
+}) => {
     const courseIds = courses.slice(0, 10).map(c => c.id)
     const announcementsQuery = useQuery(announcementsQueryOptions(courseIds))
     const announcements = announcementsQuery.data?.slice(0, 8)

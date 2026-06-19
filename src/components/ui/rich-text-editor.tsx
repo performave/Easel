@@ -22,13 +22,13 @@ interface RichTextEditorProps {
     className?: string
 }
 
-export function RichTextEditor({
+export const RichTextEditor = ({
     value,
     onChange,
     placeholder = 'Write something...',
     disabled,
     className,
-}: RichTextEditorProps) {
+}: RichTextEditorProps) => {
     const editor = useEditor({
         extensions: [StarterKit, Placeholder.configure({ placeholder })],
         content: value,
@@ -114,7 +114,7 @@ export function RichTextEditor({
     )
 }
 
-function ToolbarButton({
+const ToolbarButton = ({
     onClick,
     active,
     disabled,
@@ -126,7 +126,7 @@ function ToolbarButton({
     disabled?: boolean
     icon: typeof IconBold
     title: string
-}) {
+}) => {
     return (
         <button
             type='button'
@@ -143,6 +143,6 @@ function ToolbarButton({
     )
 }
 
-function Divider() {
+const Divider = () => {
     return <div className='bg-border mx-0.5 h-4 w-px' />
 }

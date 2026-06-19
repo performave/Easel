@@ -38,11 +38,11 @@ const ICON: Record<string, typeof IconBook> = {
     SubHeader: IconBook,
 }
 
-function storageKey(courseId: number) {
+const storageKey = (courseId: number) => {
     return `modules-open-${courseId}`
 }
 
-function loadOpenIds(courseId: number): Set<number> {
+const loadOpenIds = (courseId: number): Set<number> => {
     try {
         const raw = localStorage.getItem(storageKey(courseId))
         if (raw) return new Set(JSON.parse(raw) as number[])
@@ -50,11 +50,11 @@ function loadOpenIds(courseId: number): Set<number> {
     return new Set()
 }
 
-function saveOpenIds(courseId: number, ids: Set<number>) {
+const saveOpenIds = (courseId: number, ids: Set<number>) => {
     localStorage.setItem(storageKey(courseId), JSON.stringify([...ids]))
 }
 
-export function ModuleList({
+export const ModuleList = ({
     courseId,
     modules,
     title,
@@ -62,12 +62,12 @@ export function ModuleList({
     courseId: number
     modules: Module[]
     title?: string
-}) {
+}) => {
     const [openIds, setOpenIds] = useState<Set<number>>(() =>
         loadOpenIds(courseId)
     )
 
-    function toggle(id: number, next: boolean) {
+    const toggle = (id: number, next: boolean) => {
         setOpenIds(prev => {
             const updated = new Set(prev)
             if (next) updated.add(id)
@@ -79,7 +79,7 @@ export function ModuleList({
 
     const allOpen = modules.every(m => openIds.has(m.id))
 
-    function setAll(open: boolean) {
+    const setAll = (open: boolean) => {
         const updated = open
             ? new Set(modules.map(m => m.id))
             : new Set<number>()
@@ -118,7 +118,7 @@ export function ModuleList({
     )
 }
 
-function ModuleRow({
+const ModuleRow = ({
     courseId,
     module: m,
     open,
@@ -128,7 +128,7 @@ function ModuleRow({
     module: Module
     open: boolean
     onOpenChange: (open: boolean) => void
-}) {
+}) => {
     const { data: items } = useQuery({
         ...moduleItemsQueryOptions(courseId, m.id),
         enabled: open,
@@ -185,12 +185,18 @@ function ModuleRow({
 
 type DownloadState = { downloaded: number; total: number | null } | null
 
-function formatBytes(bytes: number): string {
+const formatBytes = (bytes: number): string => {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KiB`
     return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`
 }
 
-function ItemRow({ courseId, item }: { courseId: number; item: ModuleItem }) {
+const ItemRow = ({
+    courseId,
+    item,
+}: {
+    courseId: number
+    item: ModuleItem
+}) => {
     const [dlState, setDlState] = useState<DownloadState>(null)
     const [fakeProgress, setFakeProgress] = useState(0)
 
@@ -246,7 +252,7 @@ function ItemRow({ courseId, item }: { courseId: number; item: ModuleItem }) {
             : null
         const displayPct = realPct ?? fakeProgress
 
-        function startDownload() {
+        const startDownload = () => {
             if (dlState) return
             const fileId = item.content_id!
             setDlState({ downloaded: 0, total: null })

@@ -11,7 +11,7 @@ import { conversationsQueryOptions, todoQueryOptions } from '@/lib/queries'
 
 import { Card } from '@/components/ui/card'
 
-function averageScore(courses: Course[]): number | null {
+const averageScore = (courses: Course[]): number | null => {
     const scores = courses
         .map(c => c.enrollments?.[0]?.computed_current_score)
         .filter((s): s is number => typeof s === 'number')
@@ -19,7 +19,7 @@ function averageScore(courses: Course[]): number | null {
     return scores.reduce((a, b) => a + b, 0) / scores.length
 }
 
-function Stat({
+const Stat = ({
     icon,
     label,
     value,
@@ -27,7 +27,7 @@ function Stat({
     icon: React.ReactNode
     label: string
     value: React.ReactNode
-}) {
+}) => {
     return (
         <Card className='flex flex-row items-center gap-3 p-4'>
             <div className='bg-muted text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg [&_svg]:size-4.5'>
@@ -43,7 +43,7 @@ function Stat({
     )
 }
 
-export function StatsRow({ courses }: { courses: Course[] }) {
+export const StatsRow = ({ courses }: { courses: Course[] }) => {
     const todoQuery = useQuery(todoQueryOptions())
     const unreadQuery = useQuery(conversationsQueryOptions('unread'))
 

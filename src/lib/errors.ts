@@ -1,5 +1,5 @@
 /** Best-effort extraction of a human-readable message from an unknown error. */
-export function getErrorMessage(error: unknown): string {
+export const getErrorMessage = (error: unknown): string => {
     if (error instanceof Error) return error.message
     if (typeof error === 'object' && error !== null) {
         const maybeMessage = Reflect.get(error, 'message')
@@ -20,7 +20,7 @@ export function getErrorMessage(error: unknown): string {
 }
 
 /** Canvas returns 404 when clearing a nickname that was never set — treat as a no-op. */
-export function isNoNicknameToClearError(message: string): boolean {
+export const isNoNicknameToClearError = (message: string): boolean => {
     return (
         message.includes('canvas error 404') &&
         message.includes('no nickname exists for course')

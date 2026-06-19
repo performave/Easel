@@ -1,17 +1,11 @@
 import { cn } from '@/lib/utils'
 
-
-
-
-
-
-
 /** Standard centered page wrapper with consistent max-width, padding, and spacing. */
-function PageContainer({
+const PageContainer = ({
     className,
     size = 'default',
     ...props
-}: React.ComponentProps<'div'> & { size?: 'default' | 'wide' | 'narrow' }) {
+}: React.ComponentProps<'div'> & { size?: 'default' | 'wide' | 'narrow' }) => {
     return (
         <div
             data-slot='page-container'

@@ -1,13 +1,7 @@
 import { cn } from '@/lib/utils'
 
-
-
-
-
-
-
 /** Consistent page title block with optional description and right-aligned actions. */
-function PageHeader({
+const PageHeader = ({
     title,
     description,
     actions,
@@ -17,7 +11,7 @@ function PageHeader({
     description?: React.ReactNode
     actions?: React.ReactNode
     className?: string
-}) {
+}) => {
     return (
         <header
             className={cn('flex items-start justify-between gap-4', className)}

@@ -49,14 +49,14 @@ const WORKFLOW_STATE_LABELS: Record<string, string> = {
     pending_review: 'Pending Review',
 }
 
-function formatSubmissionType(type: string): string {
+const formatSubmissionType = (type: string): string => {
     return (
         SUBMISSION_TYPE_LABELS[type] ??
         type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
     )
 }
 
-function formatWorkflowState(state: string): string {
+const formatWorkflowState = (state: string): string => {
     return (
         WORKFLOW_STATE_LABELS[state] ??
         state.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -264,7 +264,7 @@ const submitSchema = z.object({
 })
 type SubmitValues = z.infer<typeof submitSchema>
 
-function TextEntryCard({
+const TextEntryCard = ({
     courseId,
     assignmentId,
     onSuccess,
@@ -272,7 +272,7 @@ function TextEntryCard({
     courseId: number
     assignmentId: number
     onSuccess: () => void
-}) {
+}) => {
     const form = useForm<SubmitValues>({
         resolver: zodResolver(submitSchema),
         defaultValues: { body: '' },
@@ -322,7 +322,7 @@ function TextEntryCard({
     )
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+const Row = ({ label, value }: { label: string; value: string }) => {
     return (
         <div className='flex justify-between gap-2'>
             <span className='text-muted-foreground'>{label}</span>

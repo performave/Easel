@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card'
 import { SkeletonList } from '@/components/ui/skeleton-list'
 
-export function UpcomingCard() {
+export const UpcomingCard = () => {
     const { data: upcoming, isPending } = useQuery(upcomingEventsQueryOptions())
 
     return (

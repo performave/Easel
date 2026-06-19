@@ -8,13 +8,7 @@ import {
     parseISO,
 } from 'date-fns'
 
-
-
-
-
-
-
-export function parseDate(iso: string | null | undefined): Date | null {
+export const parseDate = (iso: string | null | undefined): Date | null => {
     if (!iso) return null
     try {
         const d = parseISO(iso)
@@ -24,7 +18,7 @@ export function parseDate(iso: string | null | undefined): Date | null {
     }
 }
 
-export function formatRelativeDate(iso: string | null | undefined): string {
+export const formatRelativeDate = (iso: string | null | undefined): string => {
     const d = parseDate(iso)
     if (!d) return '—'
     if (isToday(d)) return `Today at ${format(d, 'p')}`
@@ -34,21 +28,21 @@ export function formatRelativeDate(iso: string | null | undefined): string {
     return format(d, 'MMM d, yyyy')
 }
 
-export function formatShortDate(iso: string | null | undefined): string {
+export const formatShortDate = (iso: string | null | undefined): string => {
     const d = parseDate(iso)
     if (!d) return '—'
     if (isSameYear(d, new Date())) return format(d, 'MMM d')
     return format(d, 'MMM d, yyyy')
 }
 
-export function formatRelative(iso: string | null | undefined): string {
+export const formatRelative = (iso: string | null | undefined): string => {
     const d = parseDate(iso)
     if (!d) return '—'
     return `${formatDistanceToNowStrict(d, { addSuffix: true })}`
 }
 
 /** Up to `max` uppercase initials from a name/code, ignoring punctuation. */
-export function initials(value: string | null | undefined, max = 2): string {
+export const initials = (value: string | null | undefined, max = 2): string => {
     if (!value) return '?'
     const result = value
         .replace(/[^A-Za-z0-9 ]/g, '')
@@ -61,7 +55,7 @@ export function initials(value: string | null | undefined, max = 2): string {
     return result || '?'
 }
 
-export function formatBytes(n: number): string {
+export const formatBytes = (n: number): string => {
     if (n < 1024) return `${n} B`
     if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
     if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`

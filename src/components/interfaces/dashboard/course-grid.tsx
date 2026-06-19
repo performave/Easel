@@ -29,7 +29,7 @@ import { useDashboardPrefsStore } from '@/stores/dashboard-prefs'
 import { CourseCustomizeButton } from '@/components/interfaces/dashboard/course-customize-dialog'
 import { GradeRing } from '@/components/interfaces/dashboard/grade-ring'
 
-export function CourseGrid({
+export const CourseGrid = ({
     courses,
     onReorder,
     userId,
@@ -37,7 +37,7 @@ export function CourseGrid({
     courses: Course[]
     onReorder: (order: number[]) => void
     userId: number | null
-}) {
+}) => {
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
         useSensor(KeyboardSensor, {
@@ -91,13 +91,13 @@ export function CourseGrid({
     )
 }
 
-function SortableCourseCard({
+const SortableCourseCard = ({
     course,
     userId,
 }: {
     course: Course
     userId: number | null
-}) {
+}) => {
     const {
         attributes,
         listeners,

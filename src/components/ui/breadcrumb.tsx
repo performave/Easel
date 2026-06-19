@@ -5,7 +5,7 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Breadcrumb({ className, ...props }: React.ComponentProps<'nav'>) {
+const Breadcrumb = ({ className, ...props }: React.ComponentProps<'nav'>) => {
     return (
         <nav
             aria-label='breadcrumb'
@@ -16,7 +16,10 @@ function Breadcrumb({ className, ...props }: React.ComponentProps<'nav'>) {
     )
 }
 
-function BreadcrumbList({ className, ...props }: React.ComponentProps<'ol'>) {
+const BreadcrumbList = ({
+    className,
+    ...props
+}: React.ComponentProps<'ol'>) => {
     return (
         <ol
             data-slot='breadcrumb-list'
@@ -29,7 +32,10 @@ function BreadcrumbList({ className, ...props }: React.ComponentProps<'ol'>) {
     )
 }
 
-function BreadcrumbItem({ className, ...props }: React.ComponentProps<'li'>) {
+const BreadcrumbItem = ({
+    className,
+    ...props
+}: React.ComponentProps<'li'>) => {
     return (
         <li
             data-slot='breadcrumb-item'
@@ -39,11 +45,11 @@ function BreadcrumbItem({ className, ...props }: React.ComponentProps<'li'>) {
     )
 }
 
-function BreadcrumbLink({
+const BreadcrumbLink = ({
     className,
     render,
     ...props
-}: useRender.ComponentProps<'a'>) {
+}: useRender.ComponentProps<'a'>) => {
     return useRender({
         defaultTagName: 'a',
         props: mergeProps<'a'>(
@@ -62,7 +68,10 @@ function BreadcrumbLink({
     })
 }
 
-function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
+const BreadcrumbPage = ({
+    className,
+    ...props
+}: React.ComponentProps<'span'>) => {
     return (
         <span
             data-slot='breadcrumb-page'
@@ -75,11 +84,11 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
     )
 }
 
-function BreadcrumbSeparator({
+const BreadcrumbSeparator = ({
     children,
     className,
     ...props
-}: React.ComponentProps<'li'>) {
+}: React.ComponentProps<'li'>) => {
     return (
         <li
             data-slot='breadcrumb-separator'
@@ -93,10 +102,10 @@ function BreadcrumbSeparator({
     )
 }
 
-function BreadcrumbEllipsis({
+const BreadcrumbEllipsis = ({
     className,
     ...props
-}: React.ComponentProps<'span'>) {
+}: React.ComponentProps<'span'>) => {
     return (
         <span
             data-slot='breadcrumb-ellipsis'

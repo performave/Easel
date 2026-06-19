@@ -20,7 +20,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 /** Horizontal bar chart of per-group percentage scores. */
-export function GradeByGroupChart({ groups }: { groups: GroupStat[] }) {
+export const GradeByGroupChart = ({ groups }: { groups: GroupStat[] }) => {
     const data = groups
         .filter(g => g.pct != null)
         .map(g => ({ name: g.name, pct: Number((g.pct as number).toFixed(1)) }))
