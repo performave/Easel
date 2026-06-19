@@ -1,5 +1,9 @@
 import { queryOptions } from "@tanstack/react-query";
-import { canvas } from "@/lib/api";
+import { api, canvas } from "@/lib/api";
+import { contextCode } from "@/lib/context-codes";
+
+type CalendarEventType = "event" | "assignment";
+type ConversationScope = "inbox" | "unread" | "starred" | "sent" | "archived";
 
 export const tabsQueryOptions = (courseId: number) =>
   queryOptions({
@@ -14,6 +18,13 @@ export const frontPageQueryOptions = (courseId: number) =>
     queryFn: () => canvas.frontPage(courseId),
     staleTime: 5 * 60 * 1000,
     retry: false,
+  });
+
+export const coursesQueryOptions = () =>
+  queryOptions({
+    queryKey: ["courses"] as const,
+    queryFn: () => canvas.courses(),
+    staleTime: 5 * 60 * 1000,
   });
 
 export const queryKeys = {
@@ -53,8 +64,8 @@ export const moduleItemsQueryOptions = (courseId: number, moduleId: number) =>
 
 export const courseAnnouncementsQueryOptions = (courseId: number) =>
   queryOptions({
-    queryKey: queryKeys.announcements([`course_${courseId}`]),
-    queryFn: () => canvas.announcements([`course_${courseId}`]),
+    queryKey: queryKeys.announcements([contextCode(courseId)]),
+    queryFn: () => canvas.announcements([contextCode(courseId)]),
     staleTime: 60 * 1000,
   });
 
@@ -105,4 +116,83 @@ export const filesQueryOptions = (courseId: number, folderId: number) =>
     queryKey: queryKeys.files(courseId, folderId),
     queryFn: () => canvas.files(courseId, folderId),
     staleTime: 2 * 60 * 1000,
+  });
+
+// --- User / cross-course (dashboard, inbox, calendar, announcements) ---
+
+export const currentUserQueryOptions = () =>
+  queryOptions({
+    queryKey: ["currentUser"] as const,
+    queryFn: () => api.currentUser(),
+    staleTime: 30 * 60 * 1000,
+  });
+
+export const todoQueryOptions = () =>
+  queryOptions({
+    queryKey: ["todo"] as const,
+    queryFn: () => canvas.todo(),
+    staleTime: 60 * 1000,
+  });
+
+export const upcomingEventsQueryOptions = () =>
+  queryOptions({
+    queryKey: ["upcomingEvents"] as const,
+    queryFn: () => canvas.upcomingEvents(),
+    staleTime: 2 * 60 * 1000,
+  });
+
+export const courseNicknamesQueryOptions = () =>
+  queryOptions({
+    queryKey: ["courseNicknames"] as const,
+    queryFn: () => canvas.courseNicknames(),
+    staleTime: 10 * 60 * 1000,
+  });
+
+export const dashboardPositionsQueryOptions = (userId: number) =>
+  queryOptions({
+    queryKey: ["dashboardPositions", userId] as const,
+    queryFn: () => canvas.dashboardPositions(userId),
+    staleTime: 10 * 60 * 1000,
+  });
+
+export const colorsQueryOptions = (userId: number) =>
+  queryOptions({
+    queryKey: ["colors", userId] as const,
+    queryFn: () => canvas.colors(userId),
+    staleTime: 10 * 60 * 1000,
+  });
+
+export const conversationsQueryOptions = (scope: ConversationScope) =>
+  queryOptions({
+    queryKey: ["conversations", scope] as const,
+    queryFn: () => canvas.conversations(scope),
+    staleTime: 60 * 1000,
+  });
+
+export const conversationQueryOptions = (id: number) =>
+  queryOptions({
+    queryKey: ["conversation", id] as const,
+    queryFn: () => canvas.conversation(id),
+    staleTime: 60 * 1000,
+  });
+
+export const announcementsQueryOptions = (courseIds: number[]) =>
+  queryOptions({
+    queryKey: queryKeys.announcements(courseIds.map(contextCode)),
+    queryFn: () => canvas.announcements(courseIds.map(contextCode)),
+    staleTime: 60 * 1000,
+    enabled: courseIds.length > 0,
+  });
+
+export const calendarEventsQueryOptions = (
+  start: string,
+  end: string,
+  courseIds: number[],
+  type: CalendarEventType,
+) =>
+  queryOptions({
+    queryKey: ["calendarEvents", start, end, type, ...courseIds] as const,
+    queryFn: () => canvas.calendarEvents(start, end, courseIds.map(contextCode), type),
+    staleTime: 2 * 60 * 1000,
+    enabled: courseIds.length > 0,
   });

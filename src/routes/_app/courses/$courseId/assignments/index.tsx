@@ -3,7 +3,8 @@ import { Link, createFileRoute, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { IconAlertCircle, IconCheck, IconClipboardList, IconClock } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonList } from "@/components/ui/skeleton-list";
+import { RestrictedTab } from "@/components/ui/restricted-tab";
 import { assignmentGroupsQueryOptions } from "@/lib/queries";
 import { formatRelativeDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -25,14 +26,10 @@ function AssignmentsPage() {
   );
 
   if (isPending) {
-    return (
-      <div className="space-y-3">
-        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
-      </div>
-    );
+    return <SkeletonList count={3} className="h-24 w-full" wrapperClassName="space-y-3" />;
   }
   if (isError) {
-    return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
+    return <RestrictedTab />;
   }
   if (groups.length === 0) {
     return <p className="text-sm text-muted-foreground">No assignments.</p>;

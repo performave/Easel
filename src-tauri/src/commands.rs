@@ -1,13 +1,15 @@
 use futures_util::StreamExt;
 use serde::Serialize;
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
 use url::Url;
 
 use crate::api::courses::Course;
-use crate::auth;
+use crate::api::HttpClient;
+use crate::auth::{self, Session};
 use crate::AppState;
 
 #[derive(Debug, Serialize)]
@@ -21,6 +23,20 @@ impl<E: std::fmt::Display> From<E> for CommandError {
             message: e.to_string(),
         }
     }
+}
+
+/// Read the active session, cloning it out so callers don't have to hold the
+/// lock across `await` points. Errors uniformly when unauthenticated.
+async fn require_session(state: &State<'_, AppState>) -> Result<Session, CommandError> {
+    state
+        .session
+        .read()
+        .await
+        .as_ref()
+        .cloned()
+        .ok_or_else(|| CommandError {
+            message: "not authenticated".into(),
+        })
 }
 
 #[derive(Debug, Serialize)]
@@ -59,13 +75,10 @@ pub async fn begin_login(
 pub async fn current_user(
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, CommandError> {
-    let guard = state.session.read().await;
-    let session = guard.as_ref().ok_or_else(|| CommandError {
-        message: "not authenticated".into(),
-    })?;
+    let session = require_session(&state).await?;
     let user = state
         .http
-        .get_json::<serde_json::Value>(session, "/api/v1/users/self")
+        .get_json::<serde_json::Value>(&session, "/api/v1/users/self")
         .await?;
     Ok(user)
 }
@@ -79,11 +92,8 @@ pub async fn canvas_get(
     path: String,
 ) -> Result<serde_json::Value, CommandError> {
     let path = require_safe_path(&path)?;
-    let guard = state.session.read().await;
-    let session = guard.as_ref().ok_or_else(|| CommandError {
-        message: "not authenticated".into(),
-    })?;
-    Ok(state.http.get_json::<serde_json::Value>(session, &path).await?)
+    let session = require_session(&state).await?;
+    Ok(state.http.get_json::<serde_json::Value>(&session, &path).await?)
 }
 
 #[tauri::command]
@@ -92,11 +102,8 @@ pub async fn canvas_get_all(
     path: String,
 ) -> Result<Vec<serde_json::Value>, CommandError> {
     let path = require_safe_path(&path)?;
-    let guard = state.session.read().await;
-    let session = guard.as_ref().ok_or_else(|| CommandError {
-        message: "not authenticated".into(),
-    })?;
-    Ok(state.http.get_paginated(session, &path).await?)
+    let session = require_session(&state).await?;
+    Ok(state.http.get_paginated(&session, &path).await?)
 }
 
 #[tauri::command]
@@ -108,13 +115,10 @@ pub async fn canvas_request(
     json: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, CommandError> {
     let path = require_safe_path(&path)?;
-    let guard = state.session.read().await;
-    let session = guard.as_ref().ok_or_else(|| CommandError {
-        message: "not authenticated".into(),
-    })?;
+    let session = require_session(&state).await?;
     Ok(state
         .http
-        .request_json(session, &method, &path, form.as_ref(), json.as_ref())
+        .request_json(&session, &method, &path, form.as_ref(), json.as_ref())
         .await?)
 }
 
@@ -123,12 +127,9 @@ pub async fn canvas_asset_data_url(
     state: State<'_, AppState>,
     path_or_url: String,
 ) -> Result<String, CommandError> {
-    let guard = state.session.read().await;
-    let session = guard.as_ref().ok_or_else(|| CommandError {
-        message: "not authenticated".into(),
-    })?;
+    let session = require_session(&state).await?;
 
-    let url = resolve_canvas_asset_url(session, &path_or_url)?;
+    let url = resolve_canvas_asset_url(&session, &path_or_url)?;
     let resp = state.http.client.get(&url).send().await?;
     let status = resp.status();
     if !status.is_success() {
@@ -159,7 +160,7 @@ fn require_safe_path(path: &str) -> Result<String, CommandError> {
     Ok(path.to_string())
 }
 
-fn resolve_canvas_asset_url(session: &auth::Session, path_or_url: &str) -> Result<String, CommandError> {
+fn resolve_canvas_asset_url(session: &Session, path_or_url: &str) -> Result<String, CommandError> {
     if path_or_url.starts_with('/') {
         return Ok(format!("https://{}{}", session.domain, path_or_url));
     }
@@ -182,14 +183,11 @@ fn resolve_canvas_asset_url(session: &auth::Session, path_or_url: &str) -> Resul
 
 #[tauri::command]
 pub async fn list_courses(state: State<'_, AppState>) -> Result<Vec<Course>, CommandError> {
-    let guard = state.session.read().await;
-    let session = guard.as_ref().ok_or_else(|| CommandError {
-        message: "not authenticated".into(),
-    })?;
+    let session = require_session(&state).await?;
     let courses = state
         .http
         .get_json::<Vec<Course>>(
-            session,
+            &session,
             "/api/v1/courses?enrollment_state=active&per_page=100",
         )
         .await?;
@@ -203,35 +201,38 @@ struct DownloadProgress {
     total: Option<u64>,
 }
 
-#[tauri::command]
-pub async fn download_and_open_file(
-    app: AppHandle,
-    state: State<'_, AppState>,
+/// Fetch a file's download URL and a filesystem-safe filename from its metadata.
+async fn fetch_download_meta(
+    http: &HttpClient,
+    session: &Session,
     file_id: u64,
-) -> Result<(), CommandError> {
+) -> Result<(String, String), CommandError> {
     let path = format!("/api/v1/files/{}", file_id);
-    let guard = state.session.read().await;
-    let session = guard.as_ref().ok_or_else(|| CommandError {
-        message: "not authenticated".into(),
-    })?;
-
-    let file_info = state.http.get_json::<serde_json::Value>(session, &path).await?;
-    let download_url = file_info["url"].as_str().ok_or_else(|| CommandError {
-        message: "missing download URL in file metadata".into(),
-    })?.to_string();
-    let filename = file_info["filename"]
+    let file_info = http.get_json::<serde_json::Value>(session, &path).await?;
+    let download_url = file_info["url"]
         .as_str()
-        .unwrap_or("download")
+        .ok_or_else(|| CommandError {
+            message: "missing download URL in file metadata".into(),
+        })?
         .to_string();
-    drop(guard);
-
-    let safe_name = std::path::Path::new(&filename)
+    let filename = file_info["filename"].as_str().unwrap_or("download");
+    let safe_name = Path::new(filename)
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("download")
         .to_string();
+    Ok((download_url, safe_name))
+}
 
-    let resp = state.http.client.get(&download_url).send().await?;
+/// Stream a download to `dest`, emitting `file-download-progress` events as it goes.
+async fn stream_download(
+    app: &AppHandle,
+    http: &HttpClient,
+    file_id: u64,
+    download_url: &str,
+    dest: &Path,
+) -> Result<(), CommandError> {
+    let resp = http.client.get(download_url).send().await?;
     let total = resp.content_length();
     let mut stream = resp.bytes_stream();
 
@@ -245,15 +246,31 @@ pub async fn download_and_open_file(
         let chunk = chunk?;
         downloaded += chunk.len() as u64;
         file_data.extend_from_slice(&chunk);
-        let _ = app.emit("file-download-progress", DownloadProgress {
-            file_id,
-            downloaded,
-            total,
-        });
+        let _ = app.emit(
+            "file-download-progress",
+            DownloadProgress {
+                file_id,
+                downloaded,
+                total,
+            },
+        );
     }
 
+    std::fs::write(dest, &file_data)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn download_and_open_file(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    file_id: u64,
+) -> Result<(), CommandError> {
+    let session = require_session(&state).await?;
+    let (download_url, safe_name) = fetch_download_meta(&state.http, &session, file_id).await?;
+
     let dest = std::env::temp_dir().join(&safe_name);
-    std::fs::write(&dest, &file_data)?;
+    stream_download(&app, &state.http, file_id, &download_url, &dest).await?;
 
     app.opener()
         .open_path(dest.to_string_lossy().as_ref(), None::<&str>)
@@ -268,29 +285,10 @@ pub async fn download_file_to(
     state: State<'_, AppState>,
     file_id: u64,
 ) -> Result<(), CommandError> {
-    let path = format!("/api/v1/files/{}", file_id);
-    let guard = state.session.read().await;
-    let session = guard.as_ref().ok_or_else(|| CommandError {
-        message: "not authenticated".into(),
-    })?;
+    let session = require_session(&state).await?;
+    let (download_url, safe_name) = fetch_download_meta(&state.http, &session, file_id).await?;
 
-    let file_info = state.http.get_json::<serde_json::Value>(session, &path).await?;
-    let download_url = file_info["url"].as_str().ok_or_else(|| CommandError {
-        message: "missing download URL in file metadata".into(),
-    })?.to_string();
-    let filename = file_info["filename"]
-        .as_str()
-        .unwrap_or("download")
-        .to_string();
-    drop(guard);
-
-    let safe_name = std::path::Path::new(&filename)
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("download")
-        .to_string();
-
-    let (tx, rx) = tokio::sync::oneshot::channel::<Option<std::path::PathBuf>>();
+    let (tx, rx) = tokio::sync::oneshot::channel::<Option<PathBuf>>();
     let tx = std::sync::Mutex::new(Some(tx));
     app.dialog()
         .file()
@@ -307,25 +305,7 @@ pub async fn download_file_to(
         None => return Ok(()),
     };
 
-    let resp = state.http.client.get(&download_url).send().await?;
-    let total = resp.content_length();
-    let mut stream = resp.bytes_stream();
-    let mut file_data: Vec<u8> = Vec::new();
-    if let Some(t) = total { file_data.reserve(t as usize); }
-    let mut downloaded = 0u64;
-
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk?;
-        downloaded += chunk.len() as u64;
-        file_data.extend_from_slice(&chunk);
-        let _ = app.emit("file-download-progress", DownloadProgress {
-            file_id,
-            downloaded,
-            total,
-        });
-    }
-
-    std::fs::write(&dest, &file_data)?;
+    stream_download(&app, &state.http, file_id, &download_url, &dest).await?;
     Ok(())
 }
 

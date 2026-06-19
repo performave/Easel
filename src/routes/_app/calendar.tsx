@@ -1,12 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { addDays, addMonths, format, isSameDay, isSameMonth, startOfMonth, startOfWeek, subMonths } from "date-fns";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { canvas, type CalendarEvent } from "@/lib/api";
-import { useCoursesStore } from "@/stores/courses";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
+import type { CalendarEvent } from "@/lib/api";
+import { calendarEventsQueryOptions } from "@/lib/queries";
+import { parseCourseContextCode } from "@/lib/context-codes";
+import { useCourses } from "@/hooks/use-courses";
+import { useDashboardPrefsStore } from "@/stores/dashboard-prefs";
 import { cn } from "@/lib/utils";
 import { parseDate } from "@/lib/format";
 
@@ -15,35 +22,19 @@ export const Route = createFileRoute("/_app/calendar")({
 });
 
 function CalendarPage() {
-  const courses = useCoursesStore((s) => s.courses);
+  const { courses, isPending: coursesPending } = useCourses();
+  const courseThemes = useDashboardPrefsStore((s) => s.courseThemes);
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
-  const [events, setEvents] = useState<CalendarEvent[] | null>(null);
-  const [assignments, setAssignments] = useState<CalendarEvent[] | null>(null);
 
   const gridStart = startOfWeek(startOfMonth(cursor), { weekStartsOn: 0 });
+  const courseIds = courses.map((c) => c.id);
+  const start = format(gridStart, "yyyy-MM-dd");
+  const end = format(addDays(gridStart, 41), "yyyy-MM-dd");
 
-  useEffect(() => {
-    if (courses.length === 0) {
-      setEvents([]);
-      setAssignments([]);
-      return;
-    }
-    let cancelled = false;
-    setEvents(null);
-    setAssignments(null);
-    const codes = courses.map((c) => `course_${c.id}`);
-    const start = format(gridStart, "yyyy-MM-dd");
-    const end = format(addDays(gridStart, 41), "yyyy-MM-dd");
-    canvas
-      .calendarEvents(start, end, codes, "event")
-      .then((v) => !cancelled && setEvents(v))
-      .catch(() => !cancelled && setEvents([]));
-    canvas
-      .calendarEvents(start, end, codes, "assignment")
-      .then((v) => !cancelled && setAssignments(v))
-      .catch(() => !cancelled && setAssignments([]));
-    return () => { cancelled = true; };
-  }, [courses, gridStart.getTime()]);
+  const eventsQuery = useQuery(calendarEventsQueryOptions(start, end, courseIds, "event"));
+  const assignmentsQuery = useQuery(calendarEventsQueryOptions(start, end, courseIds, "assignment"));
+  const events = eventsQuery.data;
+  const assignments = assignmentsQuery.data;
 
   const days = useMemo(() => Array.from({ length: 42 }, (_, i) => addDays(gridStart, i)), [gridStart]);
   const all = useMemo(() => [...(events ?? []), ...(assignments ?? [])], [events, assignments]);
@@ -61,28 +52,31 @@ function CalendarPage() {
     return map;
   }, [all]);
 
-  const loading = events === null || assignments === null;
+  const loading =
+    coursesPending || (courseIds.length > 0 && (eventsQuery.isPending || assignmentsQuery.isPending));
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 p-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
-          <p className="text-sm text-muted-foreground">Events and due dates from your active courses.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="size-8" onClick={() => setCursor(subMonths(cursor, 1))}>
-            <IconChevronLeft className="size-4" />
-          </Button>
-          <span className="min-w-[10ch] text-center text-sm font-medium">{format(cursor, "MMMM yyyy")}</span>
-          <Button variant="outline" size="icon" className="size-8" onClick={() => setCursor(addMonths(cursor, 1))}>
-            <IconChevronRight className="size-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setCursor(startOfMonth(new Date()))}>
-            Today
-          </Button>
-        </div>
-      </header>
+    <PageContainer>
+      <PageHeader
+        title="Calendar"
+        description="Events and due dates from your active courses."
+        actions={
+          <>
+            <span className="min-w-[10ch] text-center text-sm font-medium">{format(cursor, "MMMM yyyy")}</span>
+            <ButtonGroup>
+              <Button variant="outline" size="icon" aria-label="Previous month" onClick={() => setCursor(subMonths(cursor, 1))}>
+                <IconChevronLeft className="size-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setCursor(startOfMonth(new Date()))}>
+                Today
+              </Button>
+              <Button variant="outline" size="icon" aria-label="Next month" onClick={() => setCursor(addMonths(cursor, 1))}>
+                <IconChevronRight className="size-4" />
+              </Button>
+            </ButtonGroup>
+          </>
+        }
+      />
 
       {loading ? (
         <Skeleton className="h-[28rem] w-full" />
@@ -118,17 +112,22 @@ function CalendarPage() {
                       {format(day, "d")}
                     </div>
                     <div className="space-y-0.5">
-                      {dayEvents.slice(0, 3).map((ev) => (
-                        <a
-                          key={`${ev.id}`}
-                          href={ev.html_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block truncate rounded bg-accent px-1.5 py-0.5 text-[11px] hover:bg-accent/80"
-                        >
-                          {ev.title}
-                        </a>
-                      ))}
+                      {dayEvents.slice(0, 3).map((ev) => {
+                        const cid = parseCourseContextCode(ev.context_code);
+                        const color = cid != null ? courseThemes[cid]?.bannerColor : undefined;
+                        return (
+                          <a
+                            key={`${ev.id}`}
+                            href={ev.html_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block truncate rounded border-l-2 bg-accent px-1.5 py-0.5 text-[11px] hover:bg-accent/80"
+                            style={color ? { borderLeftColor: color, backgroundColor: `${color}1f` } : undefined}
+                          >
+                            {ev.title}
+                          </a>
+                        );
+                      })}
                       {dayEvents.length > 3 && (
                         <p className="px-1.5 text-[10px] text-muted-foreground">
                           +{dayEvents.length - 3} more
@@ -142,6 +141,6 @@ function CalendarPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

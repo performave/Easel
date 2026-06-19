@@ -2,7 +2,8 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonList } from "@/components/ui/skeleton-list";
+import { RestrictedTab } from "@/components/ui/restricted-tab";
 import { enrollmentsQueryOptions } from "@/lib/queries";
 import type { Enrollment } from "@/lib/api";
 
@@ -17,14 +18,10 @@ function PeoplePage() {
   const enrollments = data ?? [];
 
   if (isPending) {
-    return (
-      <div className="grid gap-2 sm:grid-cols-2">
-        {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
-      </div>
-    );
+    return <SkeletonList count={6} className="h-14 w-full" wrapperClassName="grid gap-2 sm:grid-cols-2" />;
   }
   if (isError) {
-    return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
+    return <RestrictedTab />;
   }
 
   const teachers = enrollments.filter((e) => e.type === "TeacherEnrollment" || e.type === "TaEnrollment");

@@ -1,11 +1,16 @@
-import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { canvas, type Announcement } from "@/lib/api";
+import { SkeletonList } from "@/components/ui/skeleton-list";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { IconSpeakerphone } from "@tabler/icons-react";
 import { CanvasHtml } from "@/lib/html";
-import { useCoursesStore } from "@/stores/courses";
+import { parseCourseContextCode } from "@/lib/context-codes";
+import { announcementsQueryOptions } from "@/lib/queries";
+import { useCourses } from "@/hooks/use-courses";
 import { formatRelative } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/announcements")({
@@ -13,37 +18,32 @@ export const Route = createFileRoute("/_app/announcements")({
 });
 
 function AnnouncementsPage() {
-  const courses = useCoursesStore((s) => s.courses);
-  const [announcements, setAnnouncements] = useState<Announcement[] | null>(null);
-
-  useEffect(() => {
-    if (courses.length === 0) {
-      setAnnouncements([]);
-      return;
-    }
-    let cancelled = false;
-    const codes = courses.map((c) => `course_${c.id}`);
-    canvas.announcements(codes).then((v) => !cancelled && setAnnouncements(v)).catch(() => !cancelled && setAnnouncements([]));
-    return () => { cancelled = true; };
-  }, [courses]);
+  const { courses, isPending: coursesPending } = useCourses();
+  const courseIds = courses.map((c) => c.id);
+  const { data, isPending } = useQuery(announcementsQueryOptions(courseIds));
+  const announcements = data ?? [];
+  const loading = coursesPending || (courseIds.length > 0 && isPending);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Announcements</h1>
-        <p className="text-sm text-muted-foreground">All announcements across your active courses.</p>
-      </header>
-      {announcements === null ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
-        </div>
+    <PageContainer size="narrow">
+      <PageHeader title="Announcements" description="All announcements across your active courses." />
+      {loading ? (
+        <SkeletonList count={4} className="h-32 w-full" wrapperClassName="space-y-3" />
       ) : announcements.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nothing to read.</p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <IconSpeakerphone />
+            </EmptyMedia>
+            <EmptyTitle>Nothing to read</EmptyTitle>
+            <EmptyDescription>New announcements from your courses will appear here.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <div className="space-y-3">
           {announcements.map((a) => {
-            const courseCode = a.context_code?.replace("course_", "");
-            const course = courseCode ? courses.find((c) => String(c.id) === courseCode) : undefined;
+            const courseId = parseCourseContextCode(a.context_code);
+            const course = courseId != null ? courses.find((c) => c.id === courseId) : undefined;
             return (
               <Card key={a.id}>
                 <CardHeader>
@@ -72,6 +72,6 @@ function AnnouncementsPage() {
           })}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

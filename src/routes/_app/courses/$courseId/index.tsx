@@ -3,6 +3,8 @@ import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonList } from "@/components/ui/skeleton-list";
+import { RestrictedTab } from "@/components/ui/restricted-tab";
 import { Button } from "@/components/ui/button";
 import { IconArrowLeft } from "@tabler/icons-react";
 import { ModuleList } from "@/components/interfaces/course/module-list";
@@ -35,9 +37,9 @@ function AnnouncementsSidebar({ courseId }: { courseId: number }) {
       </CardHeader>
       <CardContent className="space-y-2">
         {isPending ? (
-          Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
+          <SkeletonList count={2} className="h-12 w-full" />
         ) : isError ? (
-          <p className="text-sm text-muted-foreground">Announcements are restricted for your account.</p>
+          <RestrictedTab message="Announcements are restricted for your account." />
         ) : announcements.length === 0 ? (
           <p className="text-sm text-muted-foreground">No announcements yet.</p>
         ) : (
@@ -205,10 +207,10 @@ function ModulesHomeView({ courseId }: { courseId: number }) {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Modules</h2>
             </div>
-            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+            <SkeletonList count={3} className="h-16 w-full" />
           </div>
         ) : isError ? (
-          <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>
+          <RestrictedTab />
         ) : modules.length === 0 ? (
           <p className="text-sm text-muted-foreground">No modules in this course.</p>
         ) : (
@@ -230,9 +232,9 @@ function FeedHomeView({ courseId }: { courseId: number }) {
     <div className="max-w-2xl space-y-4">
       <h2 className="text-lg font-semibold">Recent Announcements</h2>
       {isPending ? (
-        Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
+        <SkeletonList count={3} className="h-20 w-full" />
       ) : isError ? (
-        <p className="text-sm text-muted-foreground">Announcements are restricted for your account.</p>
+        <RestrictedTab message="Announcements are restricted for your account." />
       ) : announcements.length === 0 ? (
         <p className="text-sm text-muted-foreground">No announcements yet.</p>
       ) : (

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RichTextField } from "@/components/forms/rich-text-field";
 import { canvas } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { assignmentQueryOptions } from "@/lib/queries";
 import { CanvasHtml } from "@/lib/html";
 import { formatRelativeDate } from "@/lib/format";
@@ -63,9 +64,7 @@ function AssignmentDetail() {
 
   if (error) {
     return (
-      <p className="text-sm text-destructive">
-        {error instanceof Error ? error.message : String(error)}
-      </p>
+      <p className="text-sm text-destructive">{getErrorMessage(error)}</p>
     );
   }
   if (isPending || !a) {

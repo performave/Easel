@@ -1,9 +1,11 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonList } from "@/components/ui/skeleton-list";
 import { Badge } from "@/components/ui/badge";
-import { useCoursesStore } from "@/stores/courses";
+import { PageContainer } from "@/components/ui/page-container";
+import { PageHeader } from "@/components/ui/page-header";
+import { GradeRing } from "@/components/interfaces/dashboard/grade-ring";
+import { useCourses } from "@/hooks/use-courses";
 import { useDashboardPrefsStore } from "@/stores/dashboard-prefs";
 
 export const Route = createFileRoute("/_app/courses/")({
@@ -11,13 +13,9 @@ export const Route = createFileRoute("/_app/courses/")({
 });
 
 function CoursesPage() {
-  const courses = useCoursesStore((s) => s.courses);
-  const status = useCoursesStore((s) => s.status);
-  const load = useCoursesStore((s) => s.load);
+  const { courses, isPending } = useCourses();
   const courseOrder = useDashboardPrefsStore((s) => s.courseOrder);
   const nicknames = useDashboardPrefsStore((s) => s.courseNicknames);
-
-  useEffect(() => { if (status === "idle") load(); }, [status, load]);
 
   const orderedCourses = (() => {
     const map = new Map(courses.map((c) => [c.id, c]));
@@ -27,15 +25,10 @@ function CoursesPage() {
   })();
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Courses</h1>
-        <p className="text-sm text-muted-foreground">All your active enrollments.</p>
-      </header>
-      {status === "loading" && courses.length === 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-36 w-full" />)}
-        </div>
+    <PageContainer>
+      <PageHeader title="Courses" description="All your active enrollments." />
+      {isPending && courses.length === 0 ? (
+        <SkeletonList count={6} className="h-36 w-full" wrapperClassName="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {orderedCourses.map((course) => {
@@ -50,9 +43,11 @@ function CoursesPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2">
                       <CardTitle className="text-base leading-snug">{nicknames[course.id] ?? course.name}</CardTitle>
-                      {enrollment?.computed_current_grade && (
+                      {typeof enrollment?.computed_current_score === "number" ? (
+                        <GradeRing value={enrollment.computed_current_score} className="shrink-0" />
+                      ) : enrollment?.computed_current_grade ? (
                         <Badge variant="secondary">{enrollment.computed_current_grade}</Badge>
-                      )}
+                      ) : null}
                     </div>
                     <CardDescription>
                       {course.course_code}
@@ -65,6 +60,6 @@ function CoursesPage() {
           })}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

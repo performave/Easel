@@ -3,8 +3,13 @@ import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RestrictedTab } from "@/components/ui/restricted-tab";
+import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { GradeByGroupChart } from "@/components/interfaces/course/grade-by-group-chart";
 import { assignmentGroupsQueryOptions, modulesQueryOptions } from "@/lib/queries";
-import { useCoursesStore } from "@/stores/courses";
+import { useCourse } from "@/hooks/use-courses";
 import { formatShortDate } from "@/lib/format";
 import { type Assignment } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -25,7 +30,7 @@ type EnrichedAssignment = Assignment & { groupName: string; groupWeight: number;
 function GradesPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/grades" });
   const id = Number(courseId);
-  const course = useCoursesStore((s) => s.byId(id));
+  const { data: course } = useCourse(id);
   const { data, isPending, isError } = useQuery(assignmentGroupsQueryOptions(id));
   const { data: modulesRaw } = useQuery(modulesQueryOptions(id));
 
@@ -151,7 +156,7 @@ function GradesPage() {
   const totalWeight = groups.reduce((s, g) => s + g.group_weight, 0);
 
   if (isError) {
-    return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
+    return <RestrictedTab />;
   }
 
   return (
@@ -210,69 +215,69 @@ function GradesPage() {
               <CardTitle className="text-base">Assignments are weighted by group</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="px-4 py-2 font-medium">Group</th>
-                    <th className="px-4 py-2 text-right font-medium">Grade</th>
-                    <th className="px-4 py-2 text-right font-medium">Weight</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
+              <Table>
+                <TableHeader>
+                  <TableRow className="text-xs text-muted-foreground">
+                    <TableHead className="px-4">Group</TableHead>
+                    <TableHead className="px-4 text-right">Grade</TableHead>
+                    <TableHead className="px-4 text-right">Weight</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {groupStats.map((g) => (
-                    <tr key={g.id} className="text-xs">
-                      <td className="px-4 py-2">{g.name}</td>
-                      <td className="px-4 py-2 text-right text-muted-foreground">
+                    <TableRow key={g.id} className="text-xs">
+                      <TableCell className="px-4">{g.name}</TableCell>
+                      <TableCell className="px-4 text-right text-muted-foreground">
                         {g.pct != null ? `${g.pct.toFixed(1)}%` : "—"}
-                      </td>
-                      <td className="px-4 py-2 text-right font-medium">{g.group_weight}%</td>
-                    </tr>
+                      </TableCell>
+                      <TableCell className="px-4 text-right font-medium">{g.group_weight}%</TableCell>
+                    </TableRow>
                   ))}
-                  <tr className="border-t-2 text-xs font-semibold">
-                    <td className="px-4 py-2">Total</td>
-                    <td className="px-4 py-2 text-right">
+                  <TableRow className="border-t-2 text-xs font-semibold hover:bg-transparent">
+                    <TableCell className="px-4">Total</TableCell>
+                    <TableCell className="px-4 text-right">
                       {displayScore != null ? `${displayScore.toFixed(1)}%` : "—"}
-                    </td>
-                    <td className="px-4 py-2 text-right">{totalWeight}%</td>
-                  </tr>
-                </tbody>
-              </table>
+                    </TableCell>
+                    <TableCell className="px-4 text-right">{totalWeight}%</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         )}
       </div>
 
+      {isWeighted && <GradeByGroupChart groups={groupStats} />}
+
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground">Sort by:</span>
-        {(["group", "module", "due_date", "name"] as SortMode[]).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => setSortMode(mode)}
-            className={cn(
-              "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-              sortMode === mode
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-input bg-background hover:bg-accent",
-            )}
-          >
-            {mode === "group" ? "Group" : mode === "module" ? "Module" : mode === "due_date" ? "Due date" : "Name"}
-          </button>
-        ))}
+        <ButtonGroup>
+          {(["group", "module", "due_date", "name"] as SortMode[]).map((mode) => (
+            <Button
+              key={mode}
+              size="sm"
+              variant={sortMode === mode ? "default" : "outline"}
+              onClick={() => setSortMode(mode)}
+            >
+              {mode === "group" ? "Group" : mode === "module" ? "Module" : mode === "due_date" ? "Due date" : "Name"}
+            </Button>
+          ))}
+        </ButtonGroup>
       </div>
 
       {isPending ? (
         <Skeleton className="h-64 w-full" />
       ) : (
         <div className="overflow-hidden rounded-md border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/40">
-              <tr className="text-left">
-                <th className="px-3 py-2 font-medium">Name</th>
-                <th className="px-3 py-2 font-medium">Due</th>
-                <th className="px-3 py-2 font-medium text-right">Score</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
+          <Table>
+            <TableHeader className="bg-muted/40">
+              <TableRow>
+                <TableHead className="px-3">Name</TableHead>
+                <TableHead className="px-3">Due</TableHead>
+                <TableHead className="px-3 text-right">Score</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {sortedAssignments.map((a) => {
                 const score = getScore(a);
                 const isOverridden = whatIfMode && scoreOverrides[a.id] !== undefined;
@@ -281,21 +286,18 @@ function GradesPage() {
                     ? (assignmentModuleMap.get(a.id) ?? "Other")
                     : a.groupName;
                 return (
-                  <tr
+                  <TableRow
                     key={a.id}
-                    className={cn(
-                      "hover:bg-accent/50",
-                      isOverridden && "bg-amber-50 dark:bg-amber-950/20",
-                    )}
+                    className={cn(isOverridden && "bg-amber-50 dark:bg-amber-950/20")}
                   >
-                    <td className="px-3 py-2">
+                    <TableCell className="px-3">
                       <p className="font-medium">{a.name}</p>
                       <p className="text-xs text-muted-foreground">{subtitle}</p>
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
+                    </TableCell>
+                    <TableCell className="px-3 text-muted-foreground">
                       {a.due_at ? formatShortDate(a.due_at) : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-right">
+                    </TableCell>
+                    <TableCell className="px-3 text-right">
                       {whatIfMode && a.points_possible != null ? (
                         <div className="flex items-center justify-end gap-1">
                           <input
@@ -324,12 +326,12 @@ function GradesPage() {
                               : "—"}
                         </span>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>

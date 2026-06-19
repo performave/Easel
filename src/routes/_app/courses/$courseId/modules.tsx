@@ -1,6 +1,7 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonList } from "@/components/ui/skeleton-list";
+import { RestrictedTab } from "@/components/ui/restricted-tab";
 import { ModuleList } from "@/components/interfaces/course/module-list";
 import { modulesQueryOptions } from "@/lib/queries";
 
@@ -16,13 +17,9 @@ function ModulesPage() {
   const modules = data ?? [];
 
   if (isPending) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
-      </div>
-    );
+    return <SkeletonList count={4} className="h-16 w-full" />;
   }
-  if (isError) return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
+  if (isError) return <RestrictedTab />;
   if (modules.length === 0) return <p className="text-sm text-muted-foreground">No modules.</p>;
   return <ModuleList courseId={id} modules={modules} />;
 }

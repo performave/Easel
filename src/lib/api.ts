@@ -22,6 +22,7 @@ export type Course = {
   start_at?: string | null;
   end_at?: string | null;
   default_view?: string | null;
+  syllabus_body?: string | null;
 };
 
 export type CanvasUser = {

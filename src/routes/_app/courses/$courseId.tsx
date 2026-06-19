@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { courseQueryOptions, modulesQueryOptions, assignmentGroupsQueryOptions, discussionsQueryOptions, enrollmentsQueryOptions, rootFolderQueryOptions, tabsQueryOptions } from "@/lib/queries";
-import { useCoursesStore } from "@/stores/courses";
+import { useCourse } from "@/hooks/use-courses";
 import { useDashboardPrefsStore } from "@/stores/dashboard-prefs";
 import { cn } from "@/lib/utils";
 
@@ -38,10 +38,10 @@ const TAB_ROUTE_MAP: Record<string, string> = {
 function CourseLayout() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId" });
   const id = Number(courseId);
-  const fromStore = useCoursesStore((s) => s.byId(id));
+  const { data: fromList } = useCourse(id);
   const { data: course } = useQuery({
     ...courseQueryOptions(id),
-    placeholderData: fromStore,
+    placeholderData: fromList,
   });
   const { data: canvasTabs } = useQuery(tabsQueryOptions(id));
   const location = useLocation();
@@ -153,16 +153,18 @@ function CourseLayout() {
           </nav>
           {canvasTabs && allSupportedTabs.length > 1 && (
             <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
-                  title="Customize tabs"
-                >
-                  <IconAdjustmentsHorizontal className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 h-9 w-9 text-muted-foreground hover:text-foreground"
+                    title="Customize tabs"
+                  >
+                    <IconAdjustmentsHorizontal className="h-4 w-4" />
+                  </Button>
+                }
+              />
               <PopoverContent className="w-56 p-2" align="end">
                 <p className="text-xs font-semibold text-muted-foreground px-3 py-1.5">Customize tabs</p>
                 <div className="space-y-0.5">

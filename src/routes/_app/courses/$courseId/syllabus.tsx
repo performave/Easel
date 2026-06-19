@@ -1,34 +1,28 @@
-import { useEffect, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { api } from "@/lib/api";
+import { courseQueryOptions } from "@/lib/queries";
 import { CanvasHtml } from "@/lib/html";
 
 export const Route = createFileRoute("/_app/courses/$courseId/syllabus")({
+  loader: ({ context, params }) => {
+    void context.queryClient.prefetchQuery(courseQueryOptions(Number(params.courseId)));
+  },
   component: SyllabusPage,
 });
 
 function SyllabusPage() {
   const { courseId } = useParams({ from: "/_app/courses/$courseId/syllabus" });
-  const [body, setBody] = useState<string | null | undefined>(undefined);
+  const { data: course, isPending } = useQuery(courseQueryOptions(Number(courseId)));
 
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .get<{ syllabus_body?: string | null }>(`/api/v1/courses/${courseId}?include[]=syllabus_body`)
-      .then((c) => !cancelled && setBody(c.syllabus_body ?? null))
-      .catch(() => !cancelled && setBody(null));
-    return () => { cancelled = true; };
-  }, [courseId]);
-
-  if (body === undefined) return <Skeleton className="h-64 w-full" />;
-  if (!body) return <p className="text-sm text-muted-foreground">No syllabus posted.</p>;
+  if (isPending) return <Skeleton className="h-64 w-full" />;
+  if (!course?.syllabus_body) return <p className="text-sm text-muted-foreground">No syllabus posted.</p>;
 
   return (
     <Card>
       <CardContent className="pt-6">
-        <CanvasHtml html={body} />
+        <CanvasHtml html={course.syllabus_body} />
       </CardContent>
     </Card>
   );

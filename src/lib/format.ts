@@ -33,6 +33,20 @@ export function formatRelative(iso: string | null | undefined): string {
   return `${formatDistanceToNowStrict(d, { addSuffix: true })}`;
 }
 
+/** Up to `max` uppercase initials from a name/code, ignoring punctuation. */
+export function initials(value: string | null | undefined, max = 2): string {
+  if (!value) return "?";
+  const result = value
+    .replace(/[^A-Za-z0-9 ]/g, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, max)
+    .map((s) => s[0])
+    .join("")
+    .toUpperCase();
+  return result || "?";
+}
+
 export function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;

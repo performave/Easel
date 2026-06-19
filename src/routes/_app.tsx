@@ -51,8 +51,12 @@ import {
 } from "@/components/layouts/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { api, type CanvasUser } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
+import { initials as toInitials } from "@/lib/format";
+import { useCourses } from "@/hooks/use-courses";
+import { CourseGlyph } from "@/components/interfaces/dashboard/course-glyph";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuthStore } from "@/stores/auth";
-import { useCoursesStore } from "@/stores/courses";
 import { useDashboardPrefsStore } from "@/stores/dashboard-prefs";
 
 export const Route = createFileRoute("/_app")({
@@ -74,24 +78,21 @@ function AppShell() {
   const location = useLocation();
   const [user, setUser] = useState<CanvasUser | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const courses = useCoursesStore((s) => s.courses);
+  const { courses, isPending: coursesPending } = useCourses();
   const courseNicknames = useDashboardPrefsStore((s) => s.courseNicknames);
-  const coursesStatus = useCoursesStore((s) => s.status);
-  const loadCourses = useCoursesStore((s) => s.load);
 
   useEffect(() => {
     let cancelled = false;
     api.currentUser()
       .then((u) => { if (!cancelled) setUser(u); })
       .catch((err) => {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = getErrorMessage(err);
         if (message.toLowerCase().includes("session expired") || message.includes("not authenticated")) {
           setUnauthenticated();
         }
       });
-    if (coursesStatus === "idle") loadCourses();
     return () => { cancelled = true; };
-  }, [setUnauthenticated, loadCourses, coursesStatus]);
+  }, [setUnauthenticated]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -109,20 +110,11 @@ function AppShell() {
       await api.logout();
       setUnauthenticated();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
+      toast.error(getErrorMessage(err));
     }
   };
 
-  const initials = useMemo(() => {
-    if (!user?.name) return "?";
-    return user.name
-      .split(" ")
-      .map((s) => s[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  }, [user?.name]);
+  const initials = useMemo(() => toInitials(user?.name), [user?.name]);
 
   return (
     <TooltipProvider delay={200}>
@@ -131,7 +123,7 @@ function AppShell() {
           <SidebarHeader>
             <div className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:px-0">
               <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-semibold">
-                S
+                E
               </div>
               <div className="flex flex-col text-sm leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="font-semibold">Easel</span>
@@ -164,7 +156,7 @@ function AppShell() {
               <SidebarGroupLabel>Courses</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {coursesStatus === "loading" && courses.length === 0 ? (
+                  {coursesPending && courses.length === 0 ? (
                     Array.from({ length: 4 }).map((_, i) => <SidebarMenuSkeleton key={i} />)
                   ) : courses.length === 0 ? (
                     <p className="px-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
@@ -250,6 +242,7 @@ function AppShell() {
                 <span className="hidden sm:inline">Search…</span>
                 <kbd className="ml-2 hidden rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono sm:inline">⌘K</kbd>
               </Button>
+              <ThemeToggle />
             </div>
           </header>
           <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
@@ -301,30 +294,9 @@ function AppShell() {
   );
 }
 
-function CourseGlyph({ code }: { code: string }) {
-  const initials = code
-    .replace(/[^A-Za-z0-9 ]/g, "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 3);
-  const hue = Array.from(code).reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % 360;
-  return (
-    <span
-      className="flex size-5 shrink-0 items-center justify-center rounded text-[9px] font-semibold text-white"
-      style={{ backgroundColor: `hsl(${hue} 60% 45%)` }}
-    >
-      {initials || "?"}
-    </span>
-  );
-}
-
 function Breadcrumbs() {
   const location = useLocation();
-  const courses = useCoursesStore((s) => s.courses);
+  const { courses } = useCourses();
   const courseNicknames = useDashboardPrefsStore((s) => s.courseNicknames);
   const segments = location.pathname.split("/").filter(Boolean);
   const crumbs: { label: string; to?: string }[] = [];

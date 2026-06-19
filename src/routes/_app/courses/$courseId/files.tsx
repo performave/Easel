@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { IconChevronRight, IconDownload, IconFile, IconFolder } from "@tabler/icons-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonList } from "@/components/ui/skeleton-list";
+import { RestrictedTab } from "@/components/ui/restricted-tab";
 import { Button } from "@/components/ui/button";
 import { filesQueryOptions, foldersQueryOptions, rootFolderQueryOptions } from "@/lib/queries";
 import type { Folder } from "@/lib/api";
@@ -48,7 +49,7 @@ function FilesPage() {
   }, [id, currentFolderId, queryClient]);
 
   if (isRestricted) {
-    return <p className="text-sm text-muted-foreground">This tab is restricted for your account.</p>;
+    return <RestrictedTab />;
   }
 
   return (
@@ -70,9 +71,7 @@ function FilesPage() {
       </nav>
       <div className="overflow-hidden rounded-md border divide-y">
         {(foldersQuery.isPending || filesQuery.isPending) && (
-          <div className="space-y-1 p-3">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
-          </div>
+          <SkeletonList count={4} className="h-8 w-full" wrapperClassName="space-y-1 p-3" />
         )}
         {folders?.map((f) => (
           <button
