@@ -11,17 +11,18 @@
 
 ## Component structure
 
-- If a component has constants and utility methods that are tightly coupled to itself, keep them close to the component and enclose them in a folder with an `index.tsx` as an entry point
+- If a component has constants and utility methods that are tightly coupled to itself, keep them close to the component
+  and enclose them in a folder with an `index.tsx` as an entry point
 - Otherwise it can just be a file on its own
 - For example:
     - ```
-    components/ui
+  components/ui
     - SampleComponentA
-      - SampleComponentA.tsx
-      - SampleComponentA.constants.ts
-      - SampleComponentA.utils.ts
-      - SampleComponentA.types.ts
-      - index.ts
+        - SampleComponentA.tsx
+        - SampleComponentA.constants.ts
+        - SampleComponentA.utils.ts
+        - SampleComponentA.types.ts
+        - index.ts
     - SampleComponentB.tsx
     ```
 

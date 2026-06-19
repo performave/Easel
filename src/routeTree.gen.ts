@@ -25,415 +25,423 @@ import { Route as AppCoursesCourseIdModulesRouteImport } from './routes/_app/cou
 import { Route as AppCoursesCourseIdGradesRouteImport } from './routes/_app/courses/$courseId/grades'
 import { Route as AppCoursesCourseIdFilesRouteImport } from './routes/_app/courses/$courseId/files'
 import { Route as AppCoursesCourseIdDiscussionsRouteImport } from './routes/_app/courses/$courseId/discussions'
-import { Route as AppCoursesCourseIdAssignmentsIndexRouteImport } from './routes/_app/courses/$courseId/assignments/index'
-import { Route as AppCoursesCourseIdAssignmentsAssignmentIdRouteImport } from './routes/_app/courses/$courseId/assignments/$assignmentId'
+import {
+    Route as AppCoursesCourseIdAssignmentsIndexRouteImport
+} from './routes/_app/courses/$courseId/assignments/index'
+import {
+    Route as AppCoursesCourseIdAssignmentsAssignmentIdRouteImport
+} from './routes/_app/courses/$courseId/assignments/$assignmentId'
 
 const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
+    id: '/login',
+    path: '/login',
+    getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
-  id: '/_app',
-  getParentRoute: () => rootRouteImport,
+    id: '/_app',
+    getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
+    id: '/',
+    path: '/',
+    getParentRoute: () => rootRouteImport,
 } as any)
 const AppInboxRoute = AppInboxRouteImport.update({
-  id: '/inbox',
-  path: '/inbox',
-  getParentRoute: () => AppRoute,
+    id: '/inbox',
+    path: '/inbox',
+    getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppRoute,
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AppRoute,
 } as any)
 const AppCalendarRoute = AppCalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
-  getParentRoute: () => AppRoute,
+    id: '/calendar',
+    path: '/calendar',
+    getParentRoute: () => AppRoute,
 } as any)
 const AppAnnouncementsRoute = AppAnnouncementsRouteImport.update({
-  id: '/announcements',
-  path: '/announcements',
-  getParentRoute: () => AppRoute,
+    id: '/announcements',
+    path: '/announcements',
+    getParentRoute: () => AppRoute,
 } as any)
 const AppCoursesIndexRoute = AppCoursesIndexRouteImport.update({
-  id: '/courses/',
-  path: '/courses/',
-  getParentRoute: () => AppRoute,
+    id: '/courses/',
+    path: '/courses/',
+    getParentRoute: () => AppRoute,
 } as any)
 const AppCoursesCourseIdRoute = AppCoursesCourseIdRouteImport.update({
-  id: '/courses/$courseId',
-  path: '/courses/$courseId',
-  getParentRoute: () => AppRoute,
+    id: '/courses/$courseId',
+    path: '/courses/$courseId',
+    getParentRoute: () => AppRoute,
 } as any)
 const AppCoursesCourseIdIndexRoute = AppCoursesCourseIdIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppCoursesCourseIdRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppCoursesCourseIdRoute,
 } as any)
 const AppCoursesCourseIdSyllabusRoute =
-  AppCoursesCourseIdSyllabusRouteImport.update({
-    id: '/syllabus',
-    path: '/syllabus',
-    getParentRoute: () => AppCoursesCourseIdRoute,
-  } as any)
+    AppCoursesCourseIdSyllabusRouteImport.update({
+        id: '/syllabus',
+        path: '/syllabus',
+        getParentRoute: () => AppCoursesCourseIdRoute,
+    } as any)
 const AppCoursesCourseIdPeopleRoute =
-  AppCoursesCourseIdPeopleRouteImport.update({
-    id: '/people',
-    path: '/people',
-    getParentRoute: () => AppCoursesCourseIdRoute,
-  } as any)
+    AppCoursesCourseIdPeopleRouteImport.update({
+        id: '/people',
+        path: '/people',
+        getParentRoute: () => AppCoursesCourseIdRoute,
+    } as any)
 const AppCoursesCourseIdModulesRoute =
-  AppCoursesCourseIdModulesRouteImport.update({
-    id: '/modules',
-    path: '/modules',
-    getParentRoute: () => AppCoursesCourseIdRoute,
-  } as any)
+    AppCoursesCourseIdModulesRouteImport.update({
+        id: '/modules',
+        path: '/modules',
+        getParentRoute: () => AppCoursesCourseIdRoute,
+    } as any)
 const AppCoursesCourseIdGradesRoute =
-  AppCoursesCourseIdGradesRouteImport.update({
-    id: '/grades',
-    path: '/grades',
-    getParentRoute: () => AppCoursesCourseIdRoute,
-  } as any)
+    AppCoursesCourseIdGradesRouteImport.update({
+        id: '/grades',
+        path: '/grades',
+        getParentRoute: () => AppCoursesCourseIdRoute,
+    } as any)
 const AppCoursesCourseIdFilesRoute = AppCoursesCourseIdFilesRouteImport.update({
-  id: '/files',
-  path: '/files',
-  getParentRoute: () => AppCoursesCourseIdRoute,
+    id: '/files',
+    path: '/files',
+    getParentRoute: () => AppCoursesCourseIdRoute,
 } as any)
 const AppCoursesCourseIdDiscussionsRoute =
-  AppCoursesCourseIdDiscussionsRouteImport.update({
-    id: '/discussions',
-    path: '/discussions',
-    getParentRoute: () => AppCoursesCourseIdRoute,
-  } as any)
+    AppCoursesCourseIdDiscussionsRouteImport.update({
+        id: '/discussions',
+        path: '/discussions',
+        getParentRoute: () => AppCoursesCourseIdRoute,
+    } as any)
 const AppCoursesCourseIdAssignmentsIndexRoute =
-  AppCoursesCourseIdAssignmentsIndexRouteImport.update({
-    id: '/assignments/',
-    path: '/assignments/',
-    getParentRoute: () => AppCoursesCourseIdRoute,
-  } as any)
+    AppCoursesCourseIdAssignmentsIndexRouteImport.update({
+        id: '/assignments/',
+        path: '/assignments/',
+        getParentRoute: () => AppCoursesCourseIdRoute,
+    } as any)
 const AppCoursesCourseIdAssignmentsAssignmentIdRoute =
-  AppCoursesCourseIdAssignmentsAssignmentIdRouteImport.update({
-    id: '/assignments/$assignmentId',
-    path: '/assignments/$assignmentId',
-    getParentRoute: () => AppCoursesCourseIdRoute,
-  } as any)
+    AppCoursesCourseIdAssignmentsAssignmentIdRouteImport.update({
+        id: '/assignments/$assignmentId',
+        path: '/assignments/$assignmentId',
+        getParentRoute: () => AppCoursesCourseIdRoute,
+    } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/announcements': typeof AppAnnouncementsRoute
-  '/calendar': typeof AppCalendarRoute
-  '/dashboard': typeof AppDashboardRoute
-  '/inbox': typeof AppInboxRoute
-  '/courses/$courseId': typeof AppCoursesCourseIdRouteWithChildren
-  '/courses/': typeof AppCoursesIndexRoute
-  '/courses/$courseId/discussions': typeof AppCoursesCourseIdDiscussionsRoute
-  '/courses/$courseId/files': typeof AppCoursesCourseIdFilesRoute
-  '/courses/$courseId/grades': typeof AppCoursesCourseIdGradesRoute
-  '/courses/$courseId/modules': typeof AppCoursesCourseIdModulesRoute
-  '/courses/$courseId/people': typeof AppCoursesCourseIdPeopleRoute
-  '/courses/$courseId/syllabus': typeof AppCoursesCourseIdSyllabusRoute
-  '/courses/$courseId/': typeof AppCoursesCourseIdIndexRoute
-  '/courses/$courseId/assignments/$assignmentId': typeof AppCoursesCourseIdAssignmentsAssignmentIdRoute
-  '/courses/$courseId/assignments/': typeof AppCoursesCourseIdAssignmentsIndexRoute
+    '/': typeof IndexRoute
+    '/login': typeof LoginRoute
+    '/announcements': typeof AppAnnouncementsRoute
+    '/calendar': typeof AppCalendarRoute
+    '/dashboard': typeof AppDashboardRoute
+    '/inbox': typeof AppInboxRoute
+    '/courses/$courseId': typeof AppCoursesCourseIdRouteWithChildren
+    '/courses/': typeof AppCoursesIndexRoute
+    '/courses/$courseId/discussions': typeof AppCoursesCourseIdDiscussionsRoute
+    '/courses/$courseId/files': typeof AppCoursesCourseIdFilesRoute
+    '/courses/$courseId/grades': typeof AppCoursesCourseIdGradesRoute
+    '/courses/$courseId/modules': typeof AppCoursesCourseIdModulesRoute
+    '/courses/$courseId/people': typeof AppCoursesCourseIdPeopleRoute
+    '/courses/$courseId/syllabus': typeof AppCoursesCourseIdSyllabusRoute
+    '/courses/$courseId/': typeof AppCoursesCourseIdIndexRoute
+    '/courses/$courseId/assignments/$assignmentId': typeof AppCoursesCourseIdAssignmentsAssignmentIdRoute
+    '/courses/$courseId/assignments/': typeof AppCoursesCourseIdAssignmentsIndexRoute
 }
+
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/announcements': typeof AppAnnouncementsRoute
-  '/calendar': typeof AppCalendarRoute
-  '/dashboard': typeof AppDashboardRoute
-  '/inbox': typeof AppInboxRoute
-  '/courses': typeof AppCoursesIndexRoute
-  '/courses/$courseId/discussions': typeof AppCoursesCourseIdDiscussionsRoute
-  '/courses/$courseId/files': typeof AppCoursesCourseIdFilesRoute
-  '/courses/$courseId/grades': typeof AppCoursesCourseIdGradesRoute
-  '/courses/$courseId/modules': typeof AppCoursesCourseIdModulesRoute
-  '/courses/$courseId/people': typeof AppCoursesCourseIdPeopleRoute
-  '/courses/$courseId/syllabus': typeof AppCoursesCourseIdSyllabusRoute
-  '/courses/$courseId': typeof AppCoursesCourseIdIndexRoute
-  '/courses/$courseId/assignments/$assignmentId': typeof AppCoursesCourseIdAssignmentsAssignmentIdRoute
-  '/courses/$courseId/assignments': typeof AppCoursesCourseIdAssignmentsIndexRoute
+    '/': typeof IndexRoute
+    '/login': typeof LoginRoute
+    '/announcements': typeof AppAnnouncementsRoute
+    '/calendar': typeof AppCalendarRoute
+    '/dashboard': typeof AppDashboardRoute
+    '/inbox': typeof AppInboxRoute
+    '/courses': typeof AppCoursesIndexRoute
+    '/courses/$courseId/discussions': typeof AppCoursesCourseIdDiscussionsRoute
+    '/courses/$courseId/files': typeof AppCoursesCourseIdFilesRoute
+    '/courses/$courseId/grades': typeof AppCoursesCourseIdGradesRoute
+    '/courses/$courseId/modules': typeof AppCoursesCourseIdModulesRoute
+    '/courses/$courseId/people': typeof AppCoursesCourseIdPeopleRoute
+    '/courses/$courseId/syllabus': typeof AppCoursesCourseIdSyllabusRoute
+    '/courses/$courseId': typeof AppCoursesCourseIdIndexRoute
+    '/courses/$courseId/assignments/$assignmentId': typeof AppCoursesCourseIdAssignmentsAssignmentIdRoute
+    '/courses/$courseId/assignments': typeof AppCoursesCourseIdAssignmentsIndexRoute
 }
+
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/_app': typeof AppRouteWithChildren
-  '/login': typeof LoginRoute
-  '/_app/announcements': typeof AppAnnouncementsRoute
-  '/_app/calendar': typeof AppCalendarRoute
-  '/_app/dashboard': typeof AppDashboardRoute
-  '/_app/inbox': typeof AppInboxRoute
-  '/_app/courses/$courseId': typeof AppCoursesCourseIdRouteWithChildren
-  '/_app/courses/': typeof AppCoursesIndexRoute
-  '/_app/courses/$courseId/discussions': typeof AppCoursesCourseIdDiscussionsRoute
-  '/_app/courses/$courseId/files': typeof AppCoursesCourseIdFilesRoute
-  '/_app/courses/$courseId/grades': typeof AppCoursesCourseIdGradesRoute
-  '/_app/courses/$courseId/modules': typeof AppCoursesCourseIdModulesRoute
-  '/_app/courses/$courseId/people': typeof AppCoursesCourseIdPeopleRoute
-  '/_app/courses/$courseId/syllabus': typeof AppCoursesCourseIdSyllabusRoute
-  '/_app/courses/$courseId/': typeof AppCoursesCourseIdIndexRoute
-  '/_app/courses/$courseId/assignments/$assignmentId': typeof AppCoursesCourseIdAssignmentsAssignmentIdRoute
-  '/_app/courses/$courseId/assignments/': typeof AppCoursesCourseIdAssignmentsIndexRoute
+    __root__: typeof rootRouteImport
+    '/': typeof IndexRoute
+    '/_app': typeof AppRouteWithChildren
+    '/login': typeof LoginRoute
+    '/_app/announcements': typeof AppAnnouncementsRoute
+    '/_app/calendar': typeof AppCalendarRoute
+    '/_app/dashboard': typeof AppDashboardRoute
+    '/_app/inbox': typeof AppInboxRoute
+    '/_app/courses/$courseId': typeof AppCoursesCourseIdRouteWithChildren
+    '/_app/courses/': typeof AppCoursesIndexRoute
+    '/_app/courses/$courseId/discussions': typeof AppCoursesCourseIdDiscussionsRoute
+    '/_app/courses/$courseId/files': typeof AppCoursesCourseIdFilesRoute
+    '/_app/courses/$courseId/grades': typeof AppCoursesCourseIdGradesRoute
+    '/_app/courses/$courseId/modules': typeof AppCoursesCourseIdModulesRoute
+    '/_app/courses/$courseId/people': typeof AppCoursesCourseIdPeopleRoute
+    '/_app/courses/$courseId/syllabus': typeof AppCoursesCourseIdSyllabusRoute
+    '/_app/courses/$courseId/': typeof AppCoursesCourseIdIndexRoute
+    '/_app/courses/$courseId/assignments/$assignmentId': typeof AppCoursesCourseIdAssignmentsAssignmentIdRoute
+    '/_app/courses/$courseId/assignments/': typeof AppCoursesCourseIdAssignmentsIndexRoute
 }
+
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/login'
-    | '/announcements'
-    | '/calendar'
-    | '/dashboard'
-    | '/inbox'
-    | '/courses/$courseId'
-    | '/courses/'
-    | '/courses/$courseId/discussions'
-    | '/courses/$courseId/files'
-    | '/courses/$courseId/grades'
-    | '/courses/$courseId/modules'
-    | '/courses/$courseId/people'
-    | '/courses/$courseId/syllabus'
-    | '/courses/$courseId/'
-    | '/courses/$courseId/assignments/$assignmentId'
-    | '/courses/$courseId/assignments/'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/login'
-    | '/announcements'
-    | '/calendar'
-    | '/dashboard'
-    | '/inbox'
-    | '/courses'
-    | '/courses/$courseId/discussions'
-    | '/courses/$courseId/files'
-    | '/courses/$courseId/grades'
-    | '/courses/$courseId/modules'
-    | '/courses/$courseId/people'
-    | '/courses/$courseId/syllabus'
-    | '/courses/$courseId'
-    | '/courses/$courseId/assignments/$assignmentId'
-    | '/courses/$courseId/assignments'
-  id:
-    | '__root__'
-    | '/'
-    | '/_app'
-    | '/login'
-    | '/_app/announcements'
-    | '/_app/calendar'
-    | '/_app/dashboard'
-    | '/_app/inbox'
-    | '/_app/courses/$courseId'
-    | '/_app/courses/'
-    | '/_app/courses/$courseId/discussions'
-    | '/_app/courses/$courseId/files'
-    | '/_app/courses/$courseId/grades'
-    | '/_app/courses/$courseId/modules'
-    | '/_app/courses/$courseId/people'
-    | '/_app/courses/$courseId/syllabus'
-    | '/_app/courses/$courseId/'
-    | '/_app/courses/$courseId/assignments/$assignmentId'
-    | '/_app/courses/$courseId/assignments/'
-  fileRoutesById: FileRoutesById
+    fileRoutesByFullPath: FileRoutesByFullPath
+    fullPaths:
+        | '/'
+        | '/login'
+        | '/announcements'
+        | '/calendar'
+        | '/dashboard'
+        | '/inbox'
+        | '/courses/$courseId'
+        | '/courses/'
+        | '/courses/$courseId/discussions'
+        | '/courses/$courseId/files'
+        | '/courses/$courseId/grades'
+        | '/courses/$courseId/modules'
+        | '/courses/$courseId/people'
+        | '/courses/$courseId/syllabus'
+        | '/courses/$courseId/'
+        | '/courses/$courseId/assignments/$assignmentId'
+        | '/courses/$courseId/assignments/'
+    fileRoutesByTo: FileRoutesByTo
+    to:
+        | '/'
+        | '/login'
+        | '/announcements'
+        | '/calendar'
+        | '/dashboard'
+        | '/inbox'
+        | '/courses'
+        | '/courses/$courseId/discussions'
+        | '/courses/$courseId/files'
+        | '/courses/$courseId/grades'
+        | '/courses/$courseId/modules'
+        | '/courses/$courseId/people'
+        | '/courses/$courseId/syllabus'
+        | '/courses/$courseId'
+        | '/courses/$courseId/assignments/$assignmentId'
+        | '/courses/$courseId/assignments'
+    id:
+        | '__root__'
+        | '/'
+        | '/_app'
+        | '/login'
+        | '/_app/announcements'
+        | '/_app/calendar'
+        | '/_app/dashboard'
+        | '/_app/inbox'
+        | '/_app/courses/$courseId'
+        | '/_app/courses/'
+        | '/_app/courses/$courseId/discussions'
+        | '/_app/courses/$courseId/files'
+        | '/_app/courses/$courseId/grades'
+        | '/_app/courses/$courseId/modules'
+        | '/_app/courses/$courseId/people'
+        | '/_app/courses/$courseId/syllabus'
+        | '/_app/courses/$courseId/'
+        | '/_app/courses/$courseId/assignments/$assignmentId'
+        | '/_app/courses/$courseId/assignments/'
+    fileRoutesById: FileRoutesById
 }
+
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AppRoute: typeof AppRouteWithChildren
-  LoginRoute: typeof LoginRoute
+    IndexRoute: typeof IndexRoute
+    AppRoute: typeof AppRouteWithChildren
+    LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
+    interface FileRoutesByPath {
+        '/login': {
+            id: '/login'
+            path: '/login'
+            fullPath: '/login'
+            preLoaderRoute: typeof LoginRouteImport
+            parentRoute: typeof rootRouteImport
+        }
+        '/_app': {
+            id: '/_app'
+            path: ''
+            fullPath: '/'
+            preLoaderRoute: typeof AppRouteImport
+            parentRoute: typeof rootRouteImport
+        }
+        '/': {
+            id: '/'
+            path: '/'
+            fullPath: '/'
+            preLoaderRoute: typeof IndexRouteImport
+            parentRoute: typeof rootRouteImport
+        }
+        '/_app/inbox': {
+            id: '/_app/inbox'
+            path: '/inbox'
+            fullPath: '/inbox'
+            preLoaderRoute: typeof AppInboxRouteImport
+            parentRoute: typeof AppRoute
+        }
+        '/_app/dashboard': {
+            id: '/_app/dashboard'
+            path: '/dashboard'
+            fullPath: '/dashboard'
+            preLoaderRoute: typeof AppDashboardRouteImport
+            parentRoute: typeof AppRoute
+        }
+        '/_app/calendar': {
+            id: '/_app/calendar'
+            path: '/calendar'
+            fullPath: '/calendar'
+            preLoaderRoute: typeof AppCalendarRouteImport
+            parentRoute: typeof AppRoute
+        }
+        '/_app/announcements': {
+            id: '/_app/announcements'
+            path: '/announcements'
+            fullPath: '/announcements'
+            preLoaderRoute: typeof AppAnnouncementsRouteImport
+            parentRoute: typeof AppRoute
+        }
+        '/_app/courses/': {
+            id: '/_app/courses/'
+            path: '/courses'
+            fullPath: '/courses/'
+            preLoaderRoute: typeof AppCoursesIndexRouteImport
+            parentRoute: typeof AppRoute
+        }
+        '/_app/courses/$courseId': {
+            id: '/_app/courses/$courseId'
+            path: '/courses/$courseId'
+            fullPath: '/courses/$courseId'
+            preLoaderRoute: typeof AppCoursesCourseIdRouteImport
+            parentRoute: typeof AppRoute
+        }
+        '/_app/courses/$courseId/': {
+            id: '/_app/courses/$courseId/'
+            path: '/'
+            fullPath: '/courses/$courseId/'
+            preLoaderRoute: typeof AppCoursesCourseIdIndexRouteImport
+            parentRoute: typeof AppCoursesCourseIdRoute
+        }
+        '/_app/courses/$courseId/syllabus': {
+            id: '/_app/courses/$courseId/syllabus'
+            path: '/syllabus'
+            fullPath: '/courses/$courseId/syllabus'
+            preLoaderRoute: typeof AppCoursesCourseIdSyllabusRouteImport
+            parentRoute: typeof AppCoursesCourseIdRoute
+        }
+        '/_app/courses/$courseId/people': {
+            id: '/_app/courses/$courseId/people'
+            path: '/people'
+            fullPath: '/courses/$courseId/people'
+            preLoaderRoute: typeof AppCoursesCourseIdPeopleRouteImport
+            parentRoute: typeof AppCoursesCourseIdRoute
+        }
+        '/_app/courses/$courseId/modules': {
+            id: '/_app/courses/$courseId/modules'
+            path: '/modules'
+            fullPath: '/courses/$courseId/modules'
+            preLoaderRoute: typeof AppCoursesCourseIdModulesRouteImport
+            parentRoute: typeof AppCoursesCourseIdRoute
+        }
+        '/_app/courses/$courseId/grades': {
+            id: '/_app/courses/$courseId/grades'
+            path: '/grades'
+            fullPath: '/courses/$courseId/grades'
+            preLoaderRoute: typeof AppCoursesCourseIdGradesRouteImport
+            parentRoute: typeof AppCoursesCourseIdRoute
+        }
+        '/_app/courses/$courseId/files': {
+            id: '/_app/courses/$courseId/files'
+            path: '/files'
+            fullPath: '/courses/$courseId/files'
+            preLoaderRoute: typeof AppCoursesCourseIdFilesRouteImport
+            parentRoute: typeof AppCoursesCourseIdRoute
+        }
+        '/_app/courses/$courseId/discussions': {
+            id: '/_app/courses/$courseId/discussions'
+            path: '/discussions'
+            fullPath: '/courses/$courseId/discussions'
+            preLoaderRoute: typeof AppCoursesCourseIdDiscussionsRouteImport
+            parentRoute: typeof AppCoursesCourseIdRoute
+        }
+        '/_app/courses/$courseId/assignments/': {
+            id: '/_app/courses/$courseId/assignments/'
+            path: '/assignments'
+            fullPath: '/courses/$courseId/assignments/'
+            preLoaderRoute: typeof AppCoursesCourseIdAssignmentsIndexRouteImport
+            parentRoute: typeof AppCoursesCourseIdRoute
+        }
+        '/_app/courses/$courseId/assignments/$assignmentId': {
+            id: '/_app/courses/$courseId/assignments/$assignmentId'
+            path: '/assignments/$assignmentId'
+            fullPath: '/courses/$courseId/assignments/$assignmentId'
+            preLoaderRoute: typeof AppCoursesCourseIdAssignmentsAssignmentIdRouteImport
+            parentRoute: typeof AppCoursesCourseIdRoute
+        }
     }
-    '/_app': {
-      id: '/_app'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/inbox': {
-      id: '/_app/inbox'
-      path: '/inbox'
-      fullPath: '/inbox'
-      preLoaderRoute: typeof AppInboxRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/dashboard': {
-      id: '/_app/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AppDashboardRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/calendar': {
-      id: '/_app/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof AppCalendarRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/announcements': {
-      id: '/_app/announcements'
-      path: '/announcements'
-      fullPath: '/announcements'
-      preLoaderRoute: typeof AppAnnouncementsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/courses/': {
-      id: '/_app/courses/'
-      path: '/courses'
-      fullPath: '/courses/'
-      preLoaderRoute: typeof AppCoursesIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/courses/$courseId': {
-      id: '/_app/courses/$courseId'
-      path: '/courses/$courseId'
-      fullPath: '/courses/$courseId'
-      preLoaderRoute: typeof AppCoursesCourseIdRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/courses/$courseId/': {
-      id: '/_app/courses/$courseId/'
-      path: '/'
-      fullPath: '/courses/$courseId/'
-      preLoaderRoute: typeof AppCoursesCourseIdIndexRouteImport
-      parentRoute: typeof AppCoursesCourseIdRoute
-    }
-    '/_app/courses/$courseId/syllabus': {
-      id: '/_app/courses/$courseId/syllabus'
-      path: '/syllabus'
-      fullPath: '/courses/$courseId/syllabus'
-      preLoaderRoute: typeof AppCoursesCourseIdSyllabusRouteImport
-      parentRoute: typeof AppCoursesCourseIdRoute
-    }
-    '/_app/courses/$courseId/people': {
-      id: '/_app/courses/$courseId/people'
-      path: '/people'
-      fullPath: '/courses/$courseId/people'
-      preLoaderRoute: typeof AppCoursesCourseIdPeopleRouteImport
-      parentRoute: typeof AppCoursesCourseIdRoute
-    }
-    '/_app/courses/$courseId/modules': {
-      id: '/_app/courses/$courseId/modules'
-      path: '/modules'
-      fullPath: '/courses/$courseId/modules'
-      preLoaderRoute: typeof AppCoursesCourseIdModulesRouteImport
-      parentRoute: typeof AppCoursesCourseIdRoute
-    }
-    '/_app/courses/$courseId/grades': {
-      id: '/_app/courses/$courseId/grades'
-      path: '/grades'
-      fullPath: '/courses/$courseId/grades'
-      preLoaderRoute: typeof AppCoursesCourseIdGradesRouteImport
-      parentRoute: typeof AppCoursesCourseIdRoute
-    }
-    '/_app/courses/$courseId/files': {
-      id: '/_app/courses/$courseId/files'
-      path: '/files'
-      fullPath: '/courses/$courseId/files'
-      preLoaderRoute: typeof AppCoursesCourseIdFilesRouteImport
-      parentRoute: typeof AppCoursesCourseIdRoute
-    }
-    '/_app/courses/$courseId/discussions': {
-      id: '/_app/courses/$courseId/discussions'
-      path: '/discussions'
-      fullPath: '/courses/$courseId/discussions'
-      preLoaderRoute: typeof AppCoursesCourseIdDiscussionsRouteImport
-      parentRoute: typeof AppCoursesCourseIdRoute
-    }
-    '/_app/courses/$courseId/assignments/': {
-      id: '/_app/courses/$courseId/assignments/'
-      path: '/assignments'
-      fullPath: '/courses/$courseId/assignments/'
-      preLoaderRoute: typeof AppCoursesCourseIdAssignmentsIndexRouteImport
-      parentRoute: typeof AppCoursesCourseIdRoute
-    }
-    '/_app/courses/$courseId/assignments/$assignmentId': {
-      id: '/_app/courses/$courseId/assignments/$assignmentId'
-      path: '/assignments/$assignmentId'
-      fullPath: '/courses/$courseId/assignments/$assignmentId'
-      preLoaderRoute: typeof AppCoursesCourseIdAssignmentsAssignmentIdRouteImport
-      parentRoute: typeof AppCoursesCourseIdRoute
-    }
-  }
 }
 
 interface AppCoursesCourseIdRouteChildren {
-  AppCoursesCourseIdDiscussionsRoute: typeof AppCoursesCourseIdDiscussionsRoute
-  AppCoursesCourseIdFilesRoute: typeof AppCoursesCourseIdFilesRoute
-  AppCoursesCourseIdGradesRoute: typeof AppCoursesCourseIdGradesRoute
-  AppCoursesCourseIdModulesRoute: typeof AppCoursesCourseIdModulesRoute
-  AppCoursesCourseIdPeopleRoute: typeof AppCoursesCourseIdPeopleRoute
-  AppCoursesCourseIdSyllabusRoute: typeof AppCoursesCourseIdSyllabusRoute
-  AppCoursesCourseIdIndexRoute: typeof AppCoursesCourseIdIndexRoute
-  AppCoursesCourseIdAssignmentsAssignmentIdRoute: typeof AppCoursesCourseIdAssignmentsAssignmentIdRoute
-  AppCoursesCourseIdAssignmentsIndexRoute: typeof AppCoursesCourseIdAssignmentsIndexRoute
+    AppCoursesCourseIdDiscussionsRoute: typeof AppCoursesCourseIdDiscussionsRoute
+    AppCoursesCourseIdFilesRoute: typeof AppCoursesCourseIdFilesRoute
+    AppCoursesCourseIdGradesRoute: typeof AppCoursesCourseIdGradesRoute
+    AppCoursesCourseIdModulesRoute: typeof AppCoursesCourseIdModulesRoute
+    AppCoursesCourseIdPeopleRoute: typeof AppCoursesCourseIdPeopleRoute
+    AppCoursesCourseIdSyllabusRoute: typeof AppCoursesCourseIdSyllabusRoute
+    AppCoursesCourseIdIndexRoute: typeof AppCoursesCourseIdIndexRoute
+    AppCoursesCourseIdAssignmentsAssignmentIdRoute: typeof AppCoursesCourseIdAssignmentsAssignmentIdRoute
+    AppCoursesCourseIdAssignmentsIndexRoute: typeof AppCoursesCourseIdAssignmentsIndexRoute
 }
 
 const AppCoursesCourseIdRouteChildren: AppCoursesCourseIdRouteChildren = {
-  AppCoursesCourseIdDiscussionsRoute: AppCoursesCourseIdDiscussionsRoute,
-  AppCoursesCourseIdFilesRoute: AppCoursesCourseIdFilesRoute,
-  AppCoursesCourseIdGradesRoute: AppCoursesCourseIdGradesRoute,
-  AppCoursesCourseIdModulesRoute: AppCoursesCourseIdModulesRoute,
-  AppCoursesCourseIdPeopleRoute: AppCoursesCourseIdPeopleRoute,
-  AppCoursesCourseIdSyllabusRoute: AppCoursesCourseIdSyllabusRoute,
-  AppCoursesCourseIdIndexRoute: AppCoursesCourseIdIndexRoute,
-  AppCoursesCourseIdAssignmentsAssignmentIdRoute:
+    AppCoursesCourseIdDiscussionsRoute: AppCoursesCourseIdDiscussionsRoute,
+    AppCoursesCourseIdFilesRoute: AppCoursesCourseIdFilesRoute,
+    AppCoursesCourseIdGradesRoute: AppCoursesCourseIdGradesRoute,
+    AppCoursesCourseIdModulesRoute: AppCoursesCourseIdModulesRoute,
+    AppCoursesCourseIdPeopleRoute: AppCoursesCourseIdPeopleRoute,
+    AppCoursesCourseIdSyllabusRoute: AppCoursesCourseIdSyllabusRoute,
+    AppCoursesCourseIdIndexRoute: AppCoursesCourseIdIndexRoute,
+    AppCoursesCourseIdAssignmentsAssignmentIdRoute:
     AppCoursesCourseIdAssignmentsAssignmentIdRoute,
-  AppCoursesCourseIdAssignmentsIndexRoute:
+    AppCoursesCourseIdAssignmentsIndexRoute:
     AppCoursesCourseIdAssignmentsIndexRoute,
 }
 
 const AppCoursesCourseIdRouteWithChildren =
-  AppCoursesCourseIdRoute._addFileChildren(AppCoursesCourseIdRouteChildren)
+    AppCoursesCourseIdRoute._addFileChildren(AppCoursesCourseIdRouteChildren)
 
 interface AppRouteChildren {
-  AppAnnouncementsRoute: typeof AppAnnouncementsRoute
-  AppCalendarRoute: typeof AppCalendarRoute
-  AppDashboardRoute: typeof AppDashboardRoute
-  AppInboxRoute: typeof AppInboxRoute
-  AppCoursesCourseIdRoute: typeof AppCoursesCourseIdRouteWithChildren
-  AppCoursesIndexRoute: typeof AppCoursesIndexRoute
+    AppAnnouncementsRoute: typeof AppAnnouncementsRoute
+    AppCalendarRoute: typeof AppCalendarRoute
+    AppDashboardRoute: typeof AppDashboardRoute
+    AppInboxRoute: typeof AppInboxRoute
+    AppCoursesCourseIdRoute: typeof AppCoursesCourseIdRouteWithChildren
+    AppCoursesIndexRoute: typeof AppCoursesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppAnnouncementsRoute: AppAnnouncementsRoute,
-  AppCalendarRoute: AppCalendarRoute,
-  AppDashboardRoute: AppDashboardRoute,
-  AppInboxRoute: AppInboxRoute,
-  AppCoursesCourseIdRoute: AppCoursesCourseIdRouteWithChildren,
-  AppCoursesIndexRoute: AppCoursesIndexRoute,
+    AppAnnouncementsRoute: AppAnnouncementsRoute,
+    AppCalendarRoute: AppCalendarRoute,
+    AppDashboardRoute: AppDashboardRoute,
+    AppInboxRoute: AppInboxRoute,
+    AppCoursesCourseIdRoute: AppCoursesCourseIdRouteWithChildren,
+    AppCoursesIndexRoute: AppCoursesIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AppRoute: AppRouteWithChildren,
-  LoginRoute: LoginRoute,
+    IndexRoute: IndexRoute,
+    AppRoute: AppRouteWithChildren,
+    LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+    ._addFileChildren(rootRouteChildren)
+    ._addFileTypes<FileRouteTypes>()

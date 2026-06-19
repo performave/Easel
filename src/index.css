@@ -118,144 +118,160 @@
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+    * {
+        @apply border-border outline-ring/50;
     }
-  html {
-    @apply font-sans;
-    height: 100%;
-    overscroll-behavior: none;
-  }
-  body {
-    @apply bg-background text-foreground;
-    height: 100%;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-  #root {
-    height: 100%;
-  }
-  a, button {
-    -webkit-user-drag: none;
-  }
+
+    html {
+        @apply font-sans;
+        height: 100%;
+        overscroll-behavior: none;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+        height: 100%;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    #root {
+        height: 100%;
+    }
+
+    a, button {
+        -webkit-user-drag: none;
+    }
 }
 
 
 @layer components {
-  .dashboard-shell {
-    background-image:
-      radial-gradient(circle at top right, oklch(0.96 0.03 170 / 45%), transparent 42%),
-      radial-gradient(circle at 12% 26%, oklch(0.97 0.02 225 / 55%), transparent 40%);
-  }
+    .dashboard-shell {
+        background-image: radial-gradient(circle at top right, oklch(0.96 0.03 170 / 45%), transparent 42%),
+        radial-gradient(circle at 12% 26%, oklch(0.97 0.02 225 / 55%), transparent 40%);
+    }
 
-  .canvas-html {
-    color: inherit;
-    line-height: 1.6;
-    user-select: text;
-    -webkit-user-select: text;
-  }
+    .canvas-html {
+        color: inherit;
+        line-height: 1.6;
+        user-select: text;
+        -webkit-user-select: text;
+    }
 
-  .canvas-html p,
-  .canvas-html ul,
-  .canvas-html ol,
-  .canvas-html blockquote,
-  .canvas-html table,
-  .canvas-html pre,
-  .canvas-html figure {
-    margin-top: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
+    .canvas-html p,
+    .canvas-html ul,
+    .canvas-html ol,
+    .canvas-html blockquote,
+    .canvas-html table,
+    .canvas-html pre,
+    .canvas-html figure {
+        margin-top: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
 
-  .canvas-html ol {
-    list-style: decimal;
-    padding-left: 1.5rem;
-  }
+    .canvas-html ol {
+        list-style: decimal;
+        padding-left: 1.5rem;
+    }
 
-  .canvas-html ul {
-    list-style: disc;
-    padding-left: 1.5rem;
-  }
+    .canvas-html ul {
+        list-style: disc;
+        padding-left: 1.5rem;
+    }
 
-  .canvas-html li {
-    margin: 0.35rem 0;
-  }
+    .canvas-html li {
+        margin: 0.35rem 0;
+    }
 
-  .canvas-html a {
-    color: var(--color-primary);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
+    .canvas-html a {
+        color: var(--color-primary);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
 
-  .canvas-html strong,
-  .canvas-html b {
-    font-weight: 600;
-  }
+    .canvas-html strong,
+    .canvas-html b {
+        font-weight: 600;
+    }
 
-  .canvas-html p > strong:only-child,
-  .canvas-html p > b:only-child,
-  .canvas-html li > strong:only-child,
-  .canvas-html li > b:only-child,
-  .canvas-html div > strong:only-child,
-  .canvas-html div > b:only-child {
-    font-weight: inherit;
-  }
+    .canvas-html p > strong:only-child,
+    .canvas-html p > b:only-child,
+    .canvas-html li > strong:only-child,
+    .canvas-html li > b:only-child,
+    .canvas-html div > strong:only-child,
+    .canvas-html div > b:only-child {
+        font-weight: inherit;
+    }
 
-  .canvas-html img,
-  .canvas-html video,
-  .canvas-html iframe {
-    max-width: 100%;
-    height: auto;
-  }
+    .canvas-html img,
+    .canvas-html video,
+    .canvas-html iframe {
+        max-width: 100%;
+        height: auto;
+    }
 
-  .tiptap-content .ProseMirror {
-    outline: none;
-    min-height: 280px;
-    padding: 0.75rem;
-    color: inherit;
-    line-height: 1.6;
-  }
+    .tiptap-content .ProseMirror {
+        outline: none;
+        min-height: 280px;
+        padding: 0.75rem;
+        color: inherit;
+        line-height: 1.6;
+    }
 
-  .tiptap-content .ProseMirror p,
-  .tiptap-content .ProseMirror ul,
-  .tiptap-content .ProseMirror ol,
-  .tiptap-content .ProseMirror blockquote,
-  .tiptap-content .ProseMirror pre {
-    margin-top: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
+    .tiptap-content .ProseMirror p,
+    .tiptap-content .ProseMirror ul,
+    .tiptap-content .ProseMirror ol,
+    .tiptap-content .ProseMirror blockquote,
+    .tiptap-content .ProseMirror pre {
+        margin-top: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
 
-  .tiptap-content .ProseMirror p:first-child,
-  .tiptap-content .ProseMirror h1:first-child,
-  .tiptap-content .ProseMirror h2:first-child,
-  .tiptap-content .ProseMirror h3:first-child {
-    margin-top: 0;
-  }
+    .tiptap-content .ProseMirror p:first-child,
+    .tiptap-content .ProseMirror h1:first-child,
+    .tiptap-content .ProseMirror h2:first-child,
+    .tiptap-content .ProseMirror h3:first-child {
+        margin-top: 0;
+    }
 
-  .tiptap-content .ProseMirror ol {
-    list-style: decimal;
-    padding-left: 1.5rem;
-  }
+    .tiptap-content .ProseMirror ol {
+        list-style: decimal;
+        padding-left: 1.5rem;
+    }
 
-  .tiptap-content .ProseMirror ul {
-    list-style: disc;
-    padding-left: 1.5rem;
-  }
+    .tiptap-content .ProseMirror ul {
+        list-style: disc;
+        padding-left: 1.5rem;
+    }
 
-  .tiptap-content .ProseMirror li {
-    margin: 0.35rem 0;
-  }
+    .tiptap-content .ProseMirror li {
+        margin: 0.35rem 0;
+    }
 
-  .tiptap-content .ProseMirror h1 { font-size: 1.5rem; font-weight: 700; }
-  .tiptap-content .ProseMirror h2 { font-size: 1.25rem; font-weight: 600; }
-  .tiptap-content .ProseMirror h3 { font-size: 1.1rem; font-weight: 600; }
+    .tiptap-content .ProseMirror h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
 
-  .tiptap-content .ProseMirror strong { font-weight: 600; }
+    .tiptap-content .ProseMirror h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
 
-  .tiptap-content .ProseMirror p.is-editor-empty:first-child::before {
-    color: var(--muted-foreground);
-    content: attr(data-placeholder);
-    float: left;
-    height: 0;
-    pointer-events: none;
-  }
+    .tiptap-content .ProseMirror h3 {
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .tiptap-content .ProseMirror strong {
+        font-weight: 600;
+    }
+
+    .tiptap-content .ProseMirror p.is-editor-empty:first-child::before {
+        color: var(--muted-foreground);
+        content: attr(data-placeholder);
+        float: left;
+        height: 0;
+        pointer-events: none;
+    }
 }
