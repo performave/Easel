@@ -217,163 +217,6 @@ struct AssignmentRow: View {
     }
 }
 
-// MARK: - Assignment detail
-
-struct AssignmentDetailView: View {
-    let courseId: Int
-    let assignmentId: Int
-
-    @Environment(\.openURL) private var openURL
-    @State private var assignment: Assignment?
-    @State private var errorText: String?
-    @State private var draft = ""
-    @State private var submitting = false
-    @State private var submitError: String?
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if let errorText {
-                    Text(errorText).foregroundStyle(.red)
-                } else if let assignment {
-                    detail(assignment)
-                } else {
-                    LoadingView()
-                }
-            }
-            .frame(maxWidth: 900, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(24)
-        }
-        .navigationTitle(assignment?.name ?? "Assignment")
-        .task { await load() }
-    }
-
-    @ViewBuilder
-    private func detail(_ a: Assignment) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(a.name).font(.title2.bold())
-                    Text(subtitle(a)).font(.callout).foregroundStyle(.secondary)
-                }
-                Spacer()
-                if let urlString = a.htmlUrl, let url = URL(string: urlString) {
-                    Button("Open in Canvas", systemImage: "arrow.up.right.square") { openURL(url) }
-                }
-            }
-        }
-
-        HStack(alignment: .top, spacing: 20) {
-            VStack(alignment: .leading, spacing: 16) {
-                CardBox(title: "Instructions") {
-                    CanvasHTMLView(html: a.description)
-                }
-                if (a.submissionTypes ?? []).contains("online_text_entry"), a.submission?.submittedAt == nil {
-                    textEntryCard
-                }
-            }
-            .frame(maxWidth: .infinity)
-
-            submissionCard(a).frame(width: 260)
-        }
-    }
-
-    private var textEntryCard: some View {
-        CardBox(title: "Your response") {
-            TextEditor(text: $draft)
-                .frame(height: 140)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.separator))
-            if let submitError { Text(submitError).font(.caption).foregroundStyle(.red) }
-            HStack {
-                Spacer()
-                Button {
-                    Task { await submit() }
-                } label: {
-                    Label(submitting ? "Submitting…" : "Submit", systemImage: "paperplane")
-                }
-                .disabled(submitting || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-    }
-
-    private func submissionCard(_ a: Assignment) -> some View {
-        CardBox(title: "Submission") {
-            if let sub = a.submission {
-                infoRow("Status", workflowLabel(sub.workflowState))
-                infoRow("Grade", gradeText(sub))
-                if let submitted = sub.submittedAt {
-                    infoRow("Submitted", Format.relativeDate(submitted))
-                }
-                HStack(spacing: 6) {
-                    if sub.late == true { tag("Late", .red) }
-                    if sub.missing == true { tag("Missing", .red) }
-                    if sub.excused == true { tag("Excused", .blue) }
-                }
-            } else {
-                Text((a.submissionTypes ?? []).isEmpty ? "No submission required."
-                     : (a.submissionTypes ?? []).joined(separator: ", "))
-                    .font(.callout).foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private func infoRow(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label).foregroundStyle(.secondary)
-            Spacer()
-            Text(value).fontWeight(.medium)
-        }
-        .font(.callout)
-    }
-
-    private func tag(_ text: String, _ color: Color) -> some View {
-        Text(text).font(.caption.weight(.medium)).foregroundStyle(.white)
-            .padding(.horizontal, 6).padding(.vertical, 2)
-            .background(color, in: Capsule())
-    }
-
-    private func subtitle(_ a: Assignment) -> String {
-        var parts = [a.dueAt.map { "Due \(Format.relativeDate($0))" } ?? "No due date"]
-        if let possible = a.pointsPossible { parts.append("\(clean(possible)) points") }
-        return parts.joined(separator: " · ")
-    }
-
-    private func gradeText(_ sub: Submission) -> String {
-        guard let grade = sub.grade else { return "—" }
-        if let score = sub.score { return "\(grade) (\(clean(score)))" }
-        return grade
-    }
-
-    private func workflowLabel(_ state: String?) -> String {
-        switch state {
-        case "submitted": return "Submitted"
-        case "graded": return "Graded"
-        case "pending_review": return "Pending Review"
-        case "unsubmitted", .none: return "Not Submitted"
-        default: return state!.capitalized
-        }
-    }
-
-    private func load() async {
-        do { assignment = try await CanvasAPI.assignment(courseId, assignmentId) }
-        catch { errorText = error.localizedDescription }
-    }
-
-    private func submit() async {
-        submitting = true
-        submitError = nil
-        do {
-            try await CanvasAPI.submitTextEntry(courseId: courseId, assignmentId: assignmentId, body: draft)
-            draft = ""
-            await load()
-        } catch {
-            submitError = error.localizedDescription
-        }
-        submitting = false
-    }
-}
-
 // MARK: - Grades
 
 struct GradesTab: View {
@@ -594,6 +437,9 @@ struct DiscussionsTab: View {
 
 struct FilesTab: View {
     let courseId: Int
+    /// When set, tapping a file hands it to the caller (to add as a reference)
+    /// instead of downloading it. Otherwise files download in-app with progress.
+    var onPick: ((CanvasFile) -> Void)? = nil
     @Environment(\.openURL) private var openURL
 
     @State private var stack: [Folder] = []
@@ -650,22 +496,7 @@ struct FilesTab: View {
                 Divider()
             }
             ForEach(files) { file in
-                Button {
-                    if let urlString = file.url, let url = URL(string: urlString) { openURL(url) }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "doc").foregroundStyle(.secondary)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(file.displayName ?? file.filename ?? "File").font(.callout).lineLimit(1)
-                            Text("\(Format.shortDate(file.updatedAt)) · \(Format.bytes(file.size ?? 0))")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "arrow.down.circle").foregroundStyle(.secondary)
-                    }
-                    .padding(10).contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+                fileRow(file)
                 Divider()
             }
             if folders.isEmpty && files.isEmpty {
@@ -673,6 +504,37 @@ struct FilesTab: View {
             }
         }
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator))
+    }
+
+    @ViewBuilder
+    private func fileRow(_ file: CanvasFile) -> some View {
+        let info = HStack(spacing: 10) {
+            Image(systemName: "doc").foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(file.displayName ?? file.filename ?? "File").font(.callout).lineLimit(1)
+                Text("\(Format.shortDate(file.updatedAt)) · \(Format.bytes(file.size ?? 0))")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+
+        if let onPick {
+            Button { onPick(file) } label: {
+                info.padding(10).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        } else {
+            HStack(spacing: 10) {
+                info
+                FileDownloadControl(file: file)
+            }
+            .padding(10)
+            .contextMenu {
+                if let urlString = file.url, let url = URL(string: urlString) {
+                    Button("Open in browser", systemImage: "safari") { openURL(url) }
+                }
+            }
+        }
     }
 
     private func loadRoot() async {

@@ -51,7 +51,7 @@ struct AppShellView: View {
         case .announcements:
             AnnouncementsView()
         case .course(let id):
-            CourseDetailView(courseId: id)
+            CourseView(courseId: id)
                 .id(id)
         }
     }
