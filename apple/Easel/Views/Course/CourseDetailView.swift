@@ -1,199 +1,178 @@
 import SwiftUI
 
-/// Routes pushed within a course.
+/// Routes that can be pushed within a course (e.g. an assignment detail).
 enum CourseRoute: Hashable {
     case assignment(Int)
-    case browse(BrowseSection)
 }
 
-/// The Canvas sections, demoted from primary tabs to an on-demand "Browse" menu.
-enum BrowseSection: String, CaseIterable, Hashable {
-    case modules, grades, discussions, files, people, syllabus
-
-    var title: String { rawValue.capitalized }
-    var systemImage: String {
-        switch self {
-        case .modules: return "square.stack.3d.up"
-        case .grades: return "chart.bar"
-        case .discussions: return "bubble.left.and.bubble.right"
-        case .files: return "folder"
-        case .people: return "person.2"
-        case .syllabus: return "doc.text"
-        }
-    }
-}
-
-/// A course, reimagined around what you actually came to do: the work. The
-/// landing view is a task list (assignments grouped by To do / Submitted /
-/// Graded) that opens straight into the assignment workspace. Browsing Canvas's
-/// sections is still possible, but it's a deliberate detour, not the front door.
-struct CourseView: View {
+/// A course's tabbed workspace. Mirrors the React `$courseId` layout: a title
+/// header, a tab bar driven by Canvas's `tabs` endpoint (respecting the user's
+/// locally hidden tabs), and the selected tab's content — all inside a
+/// `NavigationStack` so assignment details can push.
+struct CourseDetailView: View {
     let courseId: Int
 
     @Environment(AppData.self) private var appData
+    @Environment(Prefs.self) private var prefs
 
     @State private var course: Course?
-    @State private var groups: [AssignmentGroup] = []
-    @State private var state: LoadState = .loading
+    @State private var tabs: [CanvasTab] = []
+    @State private var selectedTab = "home"
     @State private var path: [CourseRoute] = []
 
-    private var assignments: [Assignment] { groups.flatMap { $0.assignments ?? [] } }
-    private var todo: [Assignment] {
-        assignments
-            .filter { $0.submission?.submittedAt == nil && $0.submission?.workflowState != "graded" }
-            .sorted { lhs, rhs in
-                switch (Format.parseDate(lhs.dueAt), Format.parseDate(rhs.dueAt)) {
-                case let (l?, r?): return l < r
-                case (nil, _?): return false
-                case (_?, nil): return true
-                default: return lhs.name < rhs.name
-                }
-            }
-    }
-    private var submitted: [Assignment] {
-        assignments.filter { $0.submission?.submittedAt != nil && $0.submission?.workflowState != "graded" }
-    }
-    private var graded: [Assignment] {
-        assignments.filter { $0.submission?.workflowState == "graded" }
+    /// Canvas tab id -> our supported tab; order also defines display order.
+    private static let supported = ["home", "modules", "assignments", "grades",
+                                    "discussions", "files", "people", "syllabus"]
+
+    private var visibleTabs: [CanvasTab] {
+        tabs
+            .filter { ($0.hidden != true) && Self.supported.contains($0.id) }
+            .filter { $0.id == "home" || !prefs.isTabHidden(courseId: courseId, tabId: $0.id) }
+            .sorted { ($0.position ?? 0) < ($1.position ?? 0) }
     }
 
     var body: some View {
         NavigationStack(path: $path) {
-            overview
-                .navigationTitle(course?.name ?? appData.course(id: courseId)?.name ?? "Course")
-                .navigationSubtitle(course?.term?.name ?? "")
-                .navigationDestination(for: CourseRoute.self) { route in
-                    switch route {
-                    case .assignment(let id):
-                        AssignmentWorkspaceView(courseId: courseId, assignmentId: id)
-                    case .browse(let section):
-                        BrowseScreen(courseId: courseId, section: section, course: course)
-                    }
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                tabBar
+                Divider()
+                ScrollView {
+                    content
+                        .frame(maxWidth: 980, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(24)
                 }
-                .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        Menu {
-                            ForEach(BrowseSection.allCases, id: \.self) { section in
-                                Button(section.title, systemImage: section.systemImage) {
-                                    path.append(.browse(section))
-                                }
-                            }
-                        } label: {
-                            Label("Browse", systemImage: "square.grid.2x2")
-                        }
-                    }
+            }
+            .navigationDestination(for: CourseRoute.self) { route in
+                switch route {
+                case .assignment(let id):
+                    AssignmentDetailView(courseId: courseId, assignmentId: id)
                 }
+            }
         }
         .task(id: courseId) { await load() }
     }
 
-    @ViewBuilder
-    private var overview: some View {
-        switch state {
-        case .loading:
-            LoadingView()
-        case .restricted:
-            taskList // assignments may still work even if some sections don't
-        case .loaded:
-            if assignments.isEmpty {
-                ContentUnavailableView("No assignments", systemImage: "checklist",
-                                       description: Text("This course has no assignments yet."))
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let course {
+                if let code = course.courseCode {
+                    Text(code.uppercased()).font(.caption.weight(.medium)).foregroundStyle(.secondary)
+                }
+                Text(course.name).font(.title.bold())
+                if let term = course.term?.name {
+                    Text(term).font(.callout).foregroundStyle(.secondary)
+                }
             } else {
-                taskList
+                Text(appData.course(id: courseId)?.name ?? "Course")
+                    .font(.title.bold())
             }
         }
+        .frame(maxWidth: 980, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24).padding(.top, 20).padding(.bottom, 12)
     }
 
-    private var courseEnrollment: CourseEnrollment? {
-        (course ?? appData.course(id: courseId))?.enrollments?.first
-    }
-
-    private var taskList: some View {
-        List {
-            if courseEnrollment?.computedCurrentScore != nil {
-                Section { gradeSummary }
+    private var tabBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                ForEach(visibleTabs) { tab in
+                    let isActive = selectedTab == tab.id
+                    Button {
+                        selectedTab = tab.id
+                        path.removeAll()
+                    } label: {
+                        Text(tab.label ?? tab.id.capitalized)
+                            .font(.callout.weight(.medium))
+                            .foregroundStyle(isActive ? Color.primary : Color.secondary)
+                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .overlay(alignment: .bottom) {
+                                Rectangle()
+                                    .fill(isActive ? Color.accentColor : .clear)
+                                    .frame(height: 2)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            bucket("To do", todo, icon: "circle")
-            bucket("Submitted", submitted, icon: "checkmark.circle")
-            bucket("Graded", graded, icon: "checkmark.seal")
+            .padding(.horizontal, 24)
         }
-        .listStyle(.inset)
     }
 
     @ViewBuilder
-    private func bucket(_ title: String, _ items: [Assignment], icon: String) -> some View {
-        if !items.isEmpty {
-            Section(title) {
-                ForEach(items) { assignment in
-                    NavigationLink(value: CourseRoute.assignment(assignment.id)) {
-                        AssignmentRow(assignment: assignment)
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var gradeSummary: some View {
-        let enrollment = courseEnrollment
-        if let score = enrollment?.computedCurrentScore {
-            HStack(spacing: 12) {
-                GradeRing(value: score, size: 44)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Current grade").font(.caption).foregroundStyle(.secondary)
-                    HStack(spacing: 6) {
-                        Text(String(format: "%.1f%%", score)).font(.title3.weight(.semibold))
-                        if let letter = enrollment?.computedCurrentGrade {
-                            Text(letter).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                Spacer()
-                Button("Grade detail", systemImage: "chart.bar") { path.append(.browse(.grades)) }
-                    .buttonStyle(.bordered)
-            }
-            .padding(.vertical, 4)
+    private var content: some View {
+        switch selectedTab {
+        case "modules": ModulesTab(courseId: courseId)
+        case "assignments": AssignmentsTab(courseId: courseId)
+        case "grades": GradesTab(courseId: courseId)
+        case "discussions": DiscussionsTab(courseId: courseId)
+        case "files": FilesTab(courseId: courseId)
+        case "people": PeopleTab(courseId: courseId)
+        case "syllabus": SyllabusTab(course: course)
+        default: CourseHomeTab(courseId: courseId, course: course)
         }
     }
 
     private func load() async {
         course = appData.course(id: courseId)
         async let fetchedCourse = try? await CanvasAPI.course(courseId)
-        do {
-            groups = try await CanvasAPI.assignmentGroups(courseId)
-            state = .loaded
-        } catch {
-            state = .restricted
-        }
+        async let fetchedTabs = try? await CanvasAPI.tabs(courseId)
         if let c = await fetchedCourse { course = c }
+        tabs = await fetchedTabs ?? []
+        if !visibleTabs.contains(where: { $0.id == selectedTab }) {
+            selectedTab = visibleTabs.first?.id ?? "home"
+        }
     }
 }
 
-/// Wraps a demoted section view with a title and scroll container.
-struct BrowseScreen: View {
+/// Course landing tab: front page (wiki) if present, otherwise modules, plus a
+/// recent-announcements sidebar — matching the React home view's behavior.
+struct CourseHomeTab: View {
     let courseId: Int
-    let section: BrowseSection
     let course: Course?
 
-    var body: some View {
-        ScrollView {
-            content
-                .frame(maxWidth: 900, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(24)
-        }
-        .navigationTitle(section.title)
-    }
+    @State private var frontPage: CoursePage?
+    @State private var announcements: [Announcement] = []
+    @State private var loaded = false
 
-    @ViewBuilder
-    private var content: some View {
-        switch section {
-        case .modules: ModulesTab(courseId: courseId)
-        case .grades: GradesTab(courseId: courseId)
-        case .discussions: DiscussionsTab(courseId: courseId)
-        case .files: FilesTab(courseId: courseId)
-        case .people: PeopleTab(courseId: courseId)
-        case .syllabus: SyllabusTab(course: course)
+    var body: some View {
+        HStack(alignment: .top, spacing: 24) {
+            VStack(alignment: .leading, spacing: 12) {
+                if course?.defaultView == "wiki", let body = frontPage?.body {
+                    CanvasHTMLView(html: body)
+                } else {
+                    ModulesTab(courseId: courseId)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Recent announcements").font(.headline)
+                if announcements.isEmpty {
+                    Text("No announcements yet.").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    ForEach(announcements.prefix(5)) { announcement in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(announcement.title ?? "").font(.callout).lineLimit(1)
+                            Text(Format.relativeDate(announcement.postedAt))
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(.separator))
+                    }
+                }
+            }
+            .frame(width: 260, alignment: .leading)
+        }
+        .task(id: courseId) {
+            guard !loaded else { return }
+            loaded = true
+            async let fp = try? await CanvasAPI.frontPage(courseId)
+            async let ann = try? await CanvasAPI.announcements(contextCodes: [ContextCode.course(courseId)])
+            frontPage = await fp
+            announcements = await ann ?? []
         }
     }
 }

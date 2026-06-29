@@ -70,17 +70,6 @@ actor CanvasClient {
         return try decode(data)
     }
 
-    /// File metadata (download URL + filename) for an in-app download.
-    func fileMeta(_ fileId: Int) async throws -> CanvasFile {
-        try await get("/api/v1/files/\(fileId)")
-    }
-
-    /// Snapshot of the current cookie jar, so a separate download session can
-    /// authenticate against Canvas-hosted (non-presigned) file URLs.
-    func currentCookies() -> [HTTPCookie] {
-        session.configuration.httpCookieStorage?.cookies ?? []
-    }
-
     /// Auto-paginates a Canvas list endpoint by following `Link: rel="next"`,
     /// concatenating items across pages (capped at 50 to avoid runaway loops).
     func getAll<T: Decodable>(_ path: String) async throws -> [T] {
@@ -91,7 +80,7 @@ actor CanvasClient {
             request.httpMethod = "GET"
             applyDefaultHeaders(&request)
             let (data, response) = try await session.data(for: request)
-            try validate(response, data: data)
+            try validate(response, data: data)z
             let page = try decode([T].self, from: data)
             out.append(contentsOf: page)
             guard let next = nextLink(in: response) else { break }

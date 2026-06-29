@@ -126,19 +126,20 @@ private struct StatTile: View {
     let icon: String
 
     var body: some View {
-        GroupBox {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(.tint)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(value).font(.title2.weight(.semibold)).monospacedDigit()
-                    Text(label).font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer()
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(.tint)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value).font(.title2.weight(.semibold)).monospacedDigit()
+                Text(label).font(.caption).foregroundStyle(.secondary)
             }
-            .padding(4)
+            Spacer()
         }
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .background(.background, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.separator))
     }
 }
 
@@ -165,49 +166,49 @@ struct CourseCard: View {
 
     var body: some View {
         let enrollment = course.enrollments?.first
-        GroupBox {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top) {
-                    Text(course.name)
-                        .font(.headline)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                    Spacer()
-                    if let score = enrollment?.computedCurrentScore {
-                        GradeRing(value: score)
-                    } else if let grade = enrollment?.computedCurrentGrade {
-                        Text(grade)
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(.secondary.opacity(0.15), in: Capsule())
-                    }
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                Text(course.name)
+                    .font(.headline)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                Spacer()
+                if let score = enrollment?.computedCurrentScore {
+                    GradeRing(value: score)
+                } else if let grade = enrollment?.computedCurrentGrade {
+                    Text(grade)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(.secondary.opacity(0.15), in: Capsule())
                 }
-                Spacer(minLength: 0)
-                Text([course.courseCode, course.term?.name].compactMap { $0 }.joined(separator: " · "))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
-            .padding(4)
-            .frame(height: 96, alignment: .topLeading)
+            Spacer(minLength: 0)
+            Text([course.courseCode, course.term?.name].compactMap { $0 }.joined(separator: " · "))
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
+        .padding(16)
+        .frame(height: 120, alignment: .topLeading)
+        .frame(maxWidth: .infinity)
+        .background(.background, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.separator))
     }
 }
 
-/// Native titled container used by cards throughout the app.
+/// Bordered titled container used by dashboard cards.
 struct CardBox<Content: View>: View {
     let title: String
     @ViewBuilder var content: Content
 
     var body: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 8) {
-                content
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 2)
-        } label: {
+        VStack(alignment: .leading, spacing: 10) {
             Text(title).font(.headline)
+            content
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.separator))
     }
 }
 
