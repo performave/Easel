@@ -28,6 +28,11 @@ actor CanvasClient {
     private let session: URLSession
     private var canvasSession: Session?
 
+    /// Invoked whenever an authenticated request comes back 401 (the session
+    /// cookie was invalidated server-side). Lets `AuthManager` drop back to the
+    /// login screen even for a token that went stale while the app was closed.
+    private var onSessionExpired: (@Sendable () async -> Void)?
+
     static let decoder: JSONDecoder = {
         let d = JSONDecoder()
         d.keyDecodingStrategy = .convertFromSnakeCase
@@ -43,6 +48,27 @@ actor CanvasClient {
     }
 
     var domain: String? { canvasSession?.domain }
+
+    /// Register a handler fired when a request detects an expired session (401).
+    func setSessionExpiredHandler(_ handler: @escaping @Sendable () async -> Void) {
+        onSessionExpired = handler
+    }
+
+    /// Make a cheap authenticated request to confirm the seeded cookies are still
+    /// valid. Returns `false` if Canvas rejects the session (e.g. a token that was
+    /// invalidated while the app was closed). Throws only on transient/network
+    /// errors so callers can distinguish "logged out" from "couldn't reach Canvas".
+    func validateSession() async throws -> Bool {
+        guard canvasSession != nil else { return false }
+        do {
+            let (_, response) = try await send(method: "GET", path: "/api/v1/users/self")
+            guard let http = response as? HTTPURLResponse else { throw CanvasError.invalidResponse }
+            if http.statusCode == 401 { return false }
+            return (200..<300).contains(http.statusCode)
+        } catch CanvasError.sessionExpired {
+            return false
+        }
+    }
 
     /// Replace the cookie jar with the cookies from `session`. Safe to call on
     /// launch (bootstrap) and after a fresh login.
@@ -180,7 +206,12 @@ actor CanvasClient {
 
     private func validate(_ response: URLResponse, data: Data) throws {
         guard let http = response as? HTTPURLResponse else { throw CanvasError.invalidResponse }
-        if http.statusCode == 401 { throw CanvasError.sessionExpired }
+        if http.statusCode == 401 {
+            if let handler = onSessionExpired {
+                Task { await handler() }
+            }
+            throw CanvasError.sessionExpired
+        }
         guard (200..<300).contains(http.statusCode) else {
             throw CanvasError.http(status: http.statusCode, body: String(decoding: data, as: UTF8.self))
         }

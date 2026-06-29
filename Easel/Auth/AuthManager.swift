@@ -38,12 +38,36 @@ final class AuthManager {
 
     /// Load any persisted session and seed the network client. Called once at startup.
     func bootstrap() async {
-        if let session = SessionStore.load() {
-            await client.seed(session)
-            domain = session.domain
-            status = .authenticated
-        } else {
+        // Flip back to the login screen whenever a live request hits a 401, even
+        // if that happens long after launch.
+        await client.setSessionExpiredHandler { [weak self] in
+            await self?.sessionExpired()
+        }
+
+        guard let session = SessionStore.load() else {
             status = .unauthenticated
+            return
+        }
+
+        await client.seed(session)
+        domain = session.domain
+
+        // The stored cookies can be invalidated server-side while the app is
+        // closed, so don't trust them blindly: confirm with Canvas before
+        // showing the authenticated shell. A network failure (throw) is treated
+        // optimistically as authenticated so we don't punt people to login when
+        // they're merely offline; a clean 401 (false) means the token is dead.
+        do {
+            if try await client.validateSession() {
+                status = .authenticated
+            } else {
+                SessionStore.clear()
+                await client.clear()
+                domain = nil
+                status = .unauthenticated
+            }
+        } catch {
+            status = .authenticated
         }
     }
 
