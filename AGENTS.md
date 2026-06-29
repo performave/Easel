@@ -1,4 +1,4 @@
 # Agent Instructions
 
-- In the `src/` frontend, use arrow functions wherever possible.
-- TanStack Router route components registered with `component: ...` must remain `function` declarations.
+- This is a native SwiftUI macOS app. Source lives in `Easel/`.
+- The Xcode project (`Easel.xcodeproj`) is generated from `project.yml` via XcodeGen and is not checked in. Run `xcodegen generate` after changing the file layout or `project.yml`.
