@@ -80,7 +80,7 @@ actor CanvasClient {
             request.httpMethod = "GET"
             applyDefaultHeaders(&request)
             let (data, response) = try await session.data(for: request)
-            try validate(response, data: data)z
+            try validate(response, data: data)
             let page = try decode([T].self, from: data)
             out.append(contentsOf: page)
             guard let next = nextLink(in: response) else { break }
